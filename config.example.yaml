@@ -1,0 +1,39 @@
+# Azure Reporting Tool Configuration
+
+# Output settings
+output:
+  directory: "./output"
+  report_filename: "azure_report.pptx"
+  backlog_filename: "improvement_backlog.xlsx"
+
+# Azure resources to analyze
+resources:
+  virtual_machines: true
+  storage_accounts: true
+  network_security_groups: true
+  virtual_networks: true
+  resource_groups: true
+  security_center: true
+
+# AI analysis settings
+ai_analysis:
+  enabled: true
+  model: "gpt-4"
+  temperature: 0.3
+  include_recommendations: true
+
+# Report settings
+report:
+  include_executive_summary: true
+  include_detailed_findings: true
+  include_cost_analysis: false
+  include_security_analysis: true
+  include_compliance_check: true
+
+# Best practices to check
+best_practices:
+  - security
+  - performance
+  - cost_optimization
+  - operational_excellence
+  - reliability
