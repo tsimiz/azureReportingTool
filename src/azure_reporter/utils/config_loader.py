@@ -100,12 +100,26 @@ class ConfigLoader:
         }
 
     def get_openai_config(self) -> Dict[str, str]:
-        """Get OpenAI configuration."""
-        return {
-            'api_key': self.openai_api_key,
-            'model': self.openai_model,
+        """Get OpenAI or Azure OpenAI configuration."""
+        config = {
             'temperature': self.config['ai_analysis'].get('temperature', 0.3)
         }
+        
+        # Prefer Azure OpenAI if configured
+        if self.azure_openai_endpoint and self.azure_openai_key:
+            config.update({
+                'api_key': self.azure_openai_key,
+                'azure_endpoint': self.azure_openai_endpoint,
+                'azure_deployment': self.azure_openai_deployment,
+                'model': self.azure_openai_deployment  # For consistency
+            })
+        else:
+            config.update({
+                'api_key': self.openai_api_key,
+                'model': self.openai_model
+            })
+        
+        return config
 
     def validate_config(self) -> bool:
         """Validate that required configuration is present."""
