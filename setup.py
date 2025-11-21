@@ -37,7 +37,7 @@ setup(
         "azure-mgmt-storage>=21.1.0",
         "azure-mgmt-monitor>=6.0.0",
         "azure-mgmt-security>=6.0.0",
-        "openai>=1.12.0",
+        "openai>=1.50.0,<2.0.0",
         "python-pptx>=0.6.23",
         "python-dotenv>=1.0.0",
         "pyyaml>=6.0.0",
