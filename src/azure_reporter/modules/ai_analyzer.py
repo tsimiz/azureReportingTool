@@ -30,6 +30,8 @@ class AIAnalyzer:
         """
         # Use Azure OpenAI if endpoint is provided
         if azure_endpoint and api_key:
+            if not azure_deployment:
+                raise ValueError("azure_deployment is required when using Azure OpenAI")
             self.client = AzureOpenAI(
                 api_key=api_key,
                 api_version="2024-02-15-preview",

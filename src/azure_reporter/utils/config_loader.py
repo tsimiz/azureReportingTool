@@ -106,7 +106,7 @@ class ConfigLoader:
         }
         
         # Prefer Azure OpenAI if configured
-        if self.azure_openai_endpoint and self.azure_openai_key:
+        if self.azure_openai_endpoint and self.azure_openai_key and self.azure_openai_deployment:
             config.update({
                 'api_key': self.azure_openai_key,
                 'azure_endpoint': self.azure_openai_endpoint,
