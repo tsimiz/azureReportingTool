@@ -22,11 +22,14 @@ class AIAnalyzer:
         """Initialize AI analyzer with OpenAI or Azure OpenAI client.
         
         Args:
-            api_key: OpenAI API key or Azure OpenAI API key
+            api_key: API key (required). For OpenAI or Azure OpenAI.
             model: Model name (used for OpenAI, ignored for Azure OpenAI)
             temperature: Sampling temperature
-            azure_endpoint: Azure OpenAI endpoint URL (if using Azure OpenAI)
-            azure_deployment: Azure OpenAI deployment name (if using Azure OpenAI)
+            azure_endpoint: Azure OpenAI endpoint URL (optional, for Azure OpenAI)
+            azure_deployment: Azure OpenAI deployment name (required if azure_endpoint provided)
+            
+        Raises:
+            ValueError: If api_key is not provided, or if azure_endpoint is provided without azure_deployment
         """
         # Use Azure OpenAI if endpoint is provided
         if azure_endpoint and api_key:
