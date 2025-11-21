@@ -7,7 +7,6 @@ from azure.mgmt.resource import ResourceManagementClient
 from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.storage import StorageManagementClient
-from azure.mgmt.security import SecurityCenter
 
 logger = logging.getLogger(__name__)
 

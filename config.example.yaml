@@ -4,7 +4,7 @@
 output:
   directory: "./output"
   report_filename: "azure_report.pptx"
-  backlog_filename: "improvement_backlog.xlsx"
+  backlog_filename: "improvement_backlog"
 
 # Azure resources to analyze
 resources:

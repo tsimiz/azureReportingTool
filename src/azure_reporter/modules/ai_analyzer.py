@@ -55,11 +55,10 @@ Provide analysis in the following JSON format:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are an Azure architecture expert specializing in best practices and recommendations."},
+                    {"role": "system", "content": "You are an Azure architecture expert specializing in best practices and recommendations. Always respond with valid JSON."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=self.temperature,
-                response_format={"type": "json_object"}
+                temperature=self.temperature
             )
             
             analysis = json.loads(response.choices[0].message.content)
@@ -112,11 +111,10 @@ Provide analysis in the following JSON format:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are an Azure security and storage expert specializing in best practices."},
+                    {"role": "system", "content": "You are an Azure security and storage expert specializing in best practices. Always respond with valid JSON."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=self.temperature,
-                response_format={"type": "json_object"}
+                temperature=self.temperature
             )
             
             analysis = json.loads(response.choices[0].message.content)
@@ -169,11 +167,10 @@ Provide analysis in the following JSON format:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are an Azure network security expert specializing in NSG best practices."},
+                    {"role": "system", "content": "You are an Azure network security expert specializing in NSG best practices. Always respond with valid JSON."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=self.temperature,
-                response_format={"type": "json_object"}
+                temperature=self.temperature
             )
             
             analysis = json.loads(response.choices[0].message.content)
@@ -226,11 +223,10 @@ Provide analysis in the following JSON format:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are an Azure network architecture expert specializing in best practices."},
+                    {"role": "system", "content": "You are an Azure network architecture expert specializing in best practices. Always respond with valid JSON."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=self.temperature,
-                response_format={"type": "json_object"}
+                temperature=self.temperature
             )
             
             analysis = json.loads(response.choices[0].message.content)
