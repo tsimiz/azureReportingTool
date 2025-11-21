@@ -34,7 +34,9 @@ A comprehensive tool to automatically generate reports and analysis of Azure env
 
 - Python 3.8 or higher
 - Azure subscription with appropriate permissions
-- OpenAI API key (for AI analysis)
+- **AI Service** (choose one):
+  - OpenAI API key, OR
+  - Azure AI Foundry (Azure OpenAI Service) endpoint and key
 - Azure Service Principal credentials (recommended) or Azure CLI authentication
 
 ## Installation
@@ -77,6 +79,8 @@ cp .env.example .env
 
 Edit `.env` and add your credentials:
 
+**Option A: Using OpenAI API**
+
 ```env
 # Azure credentials
 AZURE_TENANT_ID=your-tenant-id
@@ -87,6 +91,21 @@ AZURE_SUBSCRIPTION_ID=your-subscription-id
 # OpenAI API key
 OPENAI_API_KEY=your-openai-api-key
 OPENAI_MODEL=gpt-4
+```
+
+**Option B: Using Azure AI Foundry (Azure OpenAI Service)**
+
+```env
+# Azure credentials
+AZURE_TENANT_ID=your-tenant-id
+AZURE_CLIENT_ID=your-client-id
+AZURE_CLIENT_SECRET=your-client-secret
+AZURE_SUBSCRIPTION_ID=your-subscription-id
+
+# Azure AI Foundry / Azure OpenAI Service
+AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com/
+AZURE_OPENAI_KEY=your-azure-openai-key
+AZURE_OPENAI_DEPLOYMENT=your-deployment-name
 ```
 
 #### How to get Azure credentials:
@@ -105,6 +124,47 @@ OPENAI_MODEL=gpt-4
    ```bash
    az account show --query id -o tsv
    ```
+
+#### How to get Azure AI Foundry (Azure OpenAI) credentials:
+
+If you prefer to use Azure AI Foundry instead of OpenAI API:
+
+1. **Create an Azure OpenAI resource**:
+   - Go to the [Azure Portal](https://portal.azure.com)
+   - Navigate to "Create a resource" → Search for "Azure OpenAI"
+   - Click "Create" and fill in the required information:
+     - Subscription: Select your Azure subscription
+     - Resource group: Select or create a resource group
+     - Region: Choose a region that supports Azure OpenAI
+     - Name: Choose a unique name for your resource
+     - Pricing tier: Select appropriate tier
+   - Click "Review + create" and then "Create"
+
+2. **Deploy a model**:
+   - Once the resource is created, go to the resource
+   - Navigate to "Model deployments" or use Azure AI Foundry portal
+   - Click "Create new deployment"
+   - Select a model (e.g., gpt-4, gpt-35-turbo)
+   - Give your deployment a name (you'll use this as `AZURE_OPENAI_DEPLOYMENT`)
+   - Click "Create"
+
+3. **Get your credentials**:
+   - In your Azure OpenAI resource, go to "Keys and Endpoint"
+   - Copy the following:
+     - **Endpoint**: Use as `AZURE_OPENAI_ENDPOINT` (e.g., `https://your-resource-name.openai.azure.com/`)
+     - **Key 1 or Key 2**: Use as `AZURE_OPENAI_KEY`
+   - Note your deployment name from step 2 for `AZURE_OPENAI_DEPLOYMENT`
+
+4. **Update your `.env` file**:
+   ```env
+   # Use Azure AI Foundry instead of OpenAI API
+   # (Comment out or remove OPENAI_API_KEY when using Azure AI Foundry)
+   AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com/
+   AZURE_OPENAI_KEY=your-azure-openai-key-from-portal
+   AZURE_OPENAI_DEPLOYMENT=your-deployment-name
+   ```
+
+**Note**: The tool will automatically use Azure AI Foundry if `AZURE_OPENAI_ENDPOINT` and `AZURE_OPENAI_KEY` are set, otherwise it will fall back to OpenAI API if `OPENAI_API_KEY` is provided.
 
 ### 2. Configure report settings (optional)
 
@@ -221,9 +281,19 @@ If some resources aren't appearing:
 ### AI Analysis Errors
 
 If AI analysis fails:
+
+**For OpenAI API users:**
 - Verify your OpenAI API key is valid
 - Check you have sufficient OpenAI API credits
 - Ensure you're using a supported model (gpt-4 or gpt-3.5-turbo)
+
+**For Azure AI Foundry users:**
+- Verify your Azure OpenAI endpoint URL is correct (should include `https://` and end with `/`)
+- Check your Azure OpenAI API key is valid
+- Ensure your deployment name matches exactly what you configured in Azure portal
+- Verify your Azure OpenAI resource has sufficient quota
+- Check that your model deployment is active and not in a failed state
+- Ensure you have proper network access to your Azure OpenAI endpoint
 
 ### PowerPoint Generation Issues
 

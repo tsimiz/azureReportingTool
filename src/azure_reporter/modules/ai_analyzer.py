@@ -2,8 +2,8 @@
 
 import logging
 import json
-from typing import Dict, List, Any
-from openai import OpenAI
+from typing import Dict, List, Any, Optional
+from openai import OpenAI, AzureOpenAI
 
 logger = logging.getLogger(__name__)
 
@@ -11,12 +11,46 @@ logger = logging.getLogger(__name__)
 class AIAnalyzer:
     """Analyzes Azure resources using AI against Microsoft best practices."""
 
-    def __init__(self, api_key: str, model: str = "gpt-4", temperature: float = 0.3):
-        """Initialize AI analyzer with OpenAI client."""
-        self.client = OpenAI(api_key=api_key)
-        self.model = model
+    def __init__(
+        self, 
+        api_key: Optional[str] = None, 
+        model: str = "gpt-4", 
+        temperature: float = 0.3,
+        azure_endpoint: Optional[str] = None,
+        azure_deployment: Optional[str] = None
+    ):
+        """Initialize AI analyzer with OpenAI or Azure OpenAI client.
+        
+        Args:
+            api_key: API key (required). For OpenAI or Azure OpenAI.
+            model: Model name (used for OpenAI, ignored for Azure OpenAI)
+            temperature: Sampling temperature
+            azure_endpoint: Azure OpenAI endpoint URL (optional, for Azure OpenAI)
+            azure_deployment: Azure OpenAI deployment name (required if azure_endpoint provided)
+            
+        Raises:
+            ValueError: If api_key is not provided, or if azure_endpoint is provided without azure_deployment
+        """
+        # Use Azure OpenAI if endpoint is provided
+        if azure_endpoint and api_key:
+            if not azure_deployment:
+                raise ValueError("azure_deployment is required when using Azure OpenAI")
+            self.client = AzureOpenAI(
+                api_key=api_key,
+                api_version="2024-02-15-preview",
+                azure_endpoint=azure_endpoint
+            )
+            # For Azure OpenAI, use deployment name instead of model name
+            self.model = azure_deployment
+            logger.info(f"AI Analyzer initialized with Azure OpenAI deployment: {azure_deployment}")
+        elif api_key:
+            self.client = OpenAI(api_key=api_key)
+            self.model = model
+            logger.info(f"AI Analyzer initialized with OpenAI model: {model}")
+        else:
+            raise ValueError("Either api_key must be provided for OpenAI, or both api_key and azure_endpoint for Azure OpenAI")
+        
         self.temperature = temperature
-        logger.info(f"AI Analyzer initialized with model: {model}")
 
     def analyze_virtual_machines(self, vms: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Analyze virtual machines against best practices."""

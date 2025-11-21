@@ -100,12 +100,26 @@ class ConfigLoader:
         }
 
     def get_openai_config(self) -> Dict[str, str]:
-        """Get OpenAI configuration."""
-        return {
-            'api_key': self.openai_api_key,
-            'model': self.openai_model,
+        """Get OpenAI or Azure OpenAI configuration."""
+        config = {
             'temperature': self.config['ai_analysis'].get('temperature', 0.3)
         }
+        
+        # Prefer Azure OpenAI if configured
+        if self.azure_openai_endpoint and self.azure_openai_key and self.azure_openai_deployment:
+            config.update({
+                'api_key': self.azure_openai_key,
+                'azure_endpoint': self.azure_openai_endpoint,
+                'azure_deployment': self.azure_openai_deployment,
+                'model': self.azure_openai_deployment  # Used by AIAnalyzer; Azure OpenAI uses deployment name as model identifier
+            })
+        else:
+            config.update({
+                'api_key': self.openai_api_key,
+                'model': self.openai_model
+            })
+        
+        return config
 
     def validate_config(self) -> bool:
         """Validate that required configuration is present."""
@@ -117,8 +131,22 @@ class ConfigLoader:
         
         # Check AI configuration
         if self.config['ai_analysis']['enabled']:
-            if not self.openai_api_key and not self.azure_openai_key:
-                errors.append("Either OPENAI_API_KEY or AZURE_OPENAI_KEY is required for AI analysis")
+            has_openai = bool(self.openai_api_key)
+            has_azure_openai = bool(self.azure_openai_endpoint and self.azure_openai_key and self.azure_openai_deployment)
+            
+            if not has_openai and not has_azure_openai:
+                errors.append("Either OPENAI_API_KEY or complete Azure OpenAI configuration (AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, AZURE_OPENAI_DEPLOYMENT) is required for AI analysis")
+            
+            # If Azure OpenAI is partially configured, warn about missing parts
+            if (self.azure_openai_endpoint or self.azure_openai_key or self.azure_openai_deployment) and not has_azure_openai:
+                missing = []
+                if not self.azure_openai_endpoint:
+                    missing.append("AZURE_OPENAI_ENDPOINT")
+                if not self.azure_openai_key:
+                    missing.append("AZURE_OPENAI_KEY")
+                if not self.azure_openai_deployment:
+                    missing.append("AZURE_OPENAI_DEPLOYMENT")
+                errors.append(f"Azure OpenAI partially configured. Missing: {', '.join(missing)}")
         
         if errors:
             for error in errors:

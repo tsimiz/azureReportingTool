@@ -102,7 +102,9 @@ class AzureReporter:
         analyzer = AIAnalyzer(
             api_key=openai_config['api_key'],
             model=openai_config['model'],
-            temperature=openai_config['temperature']
+            temperature=openai_config['temperature'],
+            azure_endpoint=openai_config.get('azure_endpoint'),
+            azure_deployment=openai_config.get('azure_deployment')
         )
         
         analyses = analyzer.analyze_all_resources(resources)
