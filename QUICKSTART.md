@@ -6,7 +6,7 @@ Get started with Azure Reporting Tool in 5 minutes!
 
 - Python 3.8+ installed
 - Azure subscription
-- OpenAI API key
+- OpenAI API key OR Azure AI Foundry (Azure OpenAI Service) endpoint
 
 ## Step 1: Install Dependencies
 
@@ -63,6 +63,8 @@ nano .env  # or vim, code, etc.
 
 Add your credentials to `.env`:
 
+**Option A: Using OpenAI API**
+
 ```env
 AZURE_TENANT_ID=<tenant from service principal output>
 AZURE_CLIENT_ID=<appId from service principal output>
@@ -72,6 +74,22 @@ AZURE_SUBSCRIPTION_ID=<your subscription id>
 OPENAI_API_KEY=<your OpenAI API key>
 OPENAI_MODEL=gpt-4
 ```
+
+**Option B: Using Azure AI Foundry (Azure OpenAI)**
+
+```env
+AZURE_TENANT_ID=<tenant from service principal output>
+AZURE_CLIENT_ID=<appId from service principal output>
+AZURE_CLIENT_SECRET=<password from service principal output>
+AZURE_SUBSCRIPTION_ID=<your subscription id>
+
+# Azure AI Foundry / Azure OpenAI Service
+AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com/
+AZURE_OPENAI_KEY=<your Azure OpenAI key>
+AZURE_OPENAI_DEPLOYMENT=<your deployment name>
+```
+
+See [README.md](README.md) for detailed instructions on setting up Azure AI Foundry.
 
 ## Step 4: Run the Tool
 
@@ -122,11 +140,17 @@ python -m azure_reporter.main --config config.yaml
 - Verify Service Principal has access to resource groups
 - Check the subscription ID is correct
 
-### "OpenAI API error"
+### "OpenAI API error" or "Azure OpenAI error"
 
+**For OpenAI API:**
 - Verify OpenAI API key is valid
 - Check you have API credits
 - Try using gpt-3.5-turbo instead of gpt-4 in `.env`
+
+**For Azure AI Foundry:**
+- Verify your Azure OpenAI endpoint and key are correct
+- Check that your deployment name matches what's in Azure portal
+- Ensure your Azure OpenAI resource is active and has quota available
 
 ## Next Steps
 
