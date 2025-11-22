@@ -220,6 +220,10 @@ class AzureFetcher:
         
         try:
             for resource in self.resource_client.resources.list():
+                # Get sku and convert to dict if it exists
+                sku = getattr(resource, 'sku', None)
+                sku_dict = sku.as_dict() if sku and hasattr(sku, 'as_dict') else None
+                
                 all_resources.append({
                     'name': resource.name,
                     'type': resource.type,
@@ -228,7 +232,7 @@ class AzureFetcher:
                     'resource_group': self._extract_resource_group_from_id(resource.id),
                     'tags': resource.tags or {},
                     'kind': getattr(resource, 'kind', None),
-                    'sku': getattr(resource, 'sku', None)
+                    'sku': sku_dict
                 })
             logger.info(f"Found {len(all_resources)} total resources")
         except Exception as e:

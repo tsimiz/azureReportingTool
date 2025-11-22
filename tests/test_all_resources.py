@@ -1,5 +1,6 @@
 """Tests for all resources functionality."""
 
+import json
 import unittest
 from unittest.mock import Mock, MagicMock, patch
 from azure_reporter.modules.azure_fetcher import AzureFetcher
@@ -151,6 +152,108 @@ class TestAllResourcesFunctionality(unittest.TestCase):
         
         # Verify a slide was added
         self.assertEqual(len(ppt_gen.prs.slides), 1)
+
+    def test_fetch_generic_resources_with_sku_serialization(self):
+        """Test that resources with Sku objects can be JSON serialized."""
+        with patch('azure_reporter.modules.azure_fetcher.ResourceManagementClient') as mock_rm, \
+             patch('azure_reporter.modules.azure_fetcher.ComputeManagementClient'), \
+             patch('azure_reporter.modules.azure_fetcher.NetworkManagementClient'), \
+             patch('azure_reporter.modules.azure_fetcher.StorageManagementClient'), \
+             patch('azure_reporter.modules.azure_fetcher.ClientSecretCredential'):
+            
+            # Create a mock Sku object that mimics Azure SDK's Sku
+            mock_sku = Mock()
+            mock_sku.name = 'Standard_LRS'
+            mock_sku.tier = 'Standard'
+            mock_sku.as_dict.return_value = {'name': 'Standard_LRS', 'tier': 'Standard'}
+            
+            # Mock the resource with a Sku object
+            mock_resource = Mock()
+            mock_resource.name = 'test-storage'
+            mock_resource.type = 'Microsoft.Storage/storageAccounts'
+            mock_resource.location = 'eastus'
+            mock_resource.id = '/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/test-storage'
+            mock_resource.tags = {}
+            mock_resource.kind = 'StorageV2'
+            mock_resource.sku = mock_sku
+            
+            mock_rm.return_value.resources.list.return_value = [mock_resource]
+            
+            fetcher = AzureFetcher(
+                subscription_id='test-subscription',
+                tenant_id='test-tenant',
+                client_id='test-client',
+                client_secret='test-secret'
+            )
+            
+            # Fetch generic resources
+            resources = fetcher.fetch_generic_resources()
+            
+            # Verify resource was fetched
+            self.assertEqual(len(resources), 1)
+            self.assertEqual(resources[0]['name'], 'test-storage')
+            
+            # Verify sku is a dictionary
+            self.assertIsInstance(resources[0]['sku'], dict)
+            self.assertEqual(resources[0]['sku']['name'], 'Standard_LRS')
+            self.assertEqual(resources[0]['sku']['tier'], 'Standard')
+            
+            # Verify the resource can be JSON serialized (this is the key test)
+            try:
+                json_str = json.dumps(resources)
+                self.assertIsInstance(json_str, str)
+                
+                # Verify we can parse it back
+                parsed = json.loads(json_str)
+                self.assertEqual(len(parsed), 1)
+                self.assertEqual(parsed[0]['sku']['name'], 'Standard_LRS')
+            except TypeError as e:
+                self.fail(f"Resources should be JSON serializable but got: {e}")
+
+    def test_fetch_generic_resources_without_sku(self):
+        """Test that resources without Sku don't cause issues."""
+        with patch('azure_reporter.modules.azure_fetcher.ResourceManagementClient') as mock_rm, \
+             patch('azure_reporter.modules.azure_fetcher.ComputeManagementClient'), \
+             patch('azure_reporter.modules.azure_fetcher.NetworkManagementClient'), \
+             patch('azure_reporter.modules.azure_fetcher.StorageManagementClient'), \
+             patch('azure_reporter.modules.azure_fetcher.ClientSecretCredential'):
+            
+            # Mock a resource without a sku attribute
+            mock_resource = Mock()
+            mock_resource.name = 'test-vm'
+            mock_resource.type = 'Microsoft.Compute/virtualMachines'
+            mock_resource.location = 'westus'
+            mock_resource.id = '/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Compute/virtualMachines/test-vm'
+            mock_resource.tags = {'env': 'prod'}
+            mock_resource.kind = None
+            # Simulate resource without sku attribute
+            del mock_resource.sku
+            
+            mock_rm.return_value.resources.list.return_value = [mock_resource]
+            
+            fetcher = AzureFetcher(
+                subscription_id='test-subscription',
+                tenant_id='test-tenant',
+                client_id='test-client',
+                client_secret='test-secret'
+            )
+            
+            # Fetch generic resources
+            resources = fetcher.fetch_generic_resources()
+            
+            # Verify resource was fetched
+            self.assertEqual(len(resources), 1)
+            self.assertEqual(resources[0]['name'], 'test-vm')
+            
+            # Verify sku is None
+            self.assertIsNone(resources[0]['sku'])
+            
+            # Verify the resource can be JSON serialized
+            try:
+                json_str = json.dumps(resources)
+                self.assertIsInstance(json_str, str)
+            except TypeError as e:
+                self.fail(f"Resources should be JSON serializable but got: {e}")
 
 
 if __name__ == '__main__':
