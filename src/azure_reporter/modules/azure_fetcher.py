@@ -196,6 +196,29 @@ class AzureFetcher:
             
         return vnets
 
+    def fetch_generic_resources(self) -> List[Dict[str, Any]]:
+        """Fetch all resources in the subscription using the generic resources API."""
+        logger.info("Fetching all resources in subscription...")
+        all_resources = []
+        
+        try:
+            for resource in self.resource_client.resources.list():
+                all_resources.append({
+                    'name': resource.name,
+                    'type': resource.type,
+                    'location': resource.location,
+                    'id': resource.id,
+                    'resource_group': resource.id.split('/')[4] if len(resource.id.split('/')) > 4 else 'Unknown',
+                    'tags': resource.tags or {},
+                    'kind': getattr(resource, 'kind', None),
+                    'sku': getattr(resource, 'sku', None)
+                })
+            logger.info(f"Found {len(all_resources)} total resources")
+        except Exception as e:
+            logger.error(f"Error fetching generic resources: {e}")
+            
+        return all_resources
+
     def fetch_all_resources(self) -> Dict[str, List[Dict[str, Any]]]:
         """Fetch all Azure resources."""
         logger.info("Starting to fetch all Azure resources...")
@@ -205,7 +228,8 @@ class AzureFetcher:
             'virtual_machines': self.fetch_virtual_machines(),
             'storage_accounts': self.fetch_storage_accounts(),
             'network_security_groups': self.fetch_network_security_groups(),
-            'virtual_networks': self.fetch_virtual_networks()
+            'virtual_networks': self.fetch_virtual_networks(),
+            'all_resources': self.fetch_generic_resources()
         }
         
         logger.info("Completed fetching all Azure resources")

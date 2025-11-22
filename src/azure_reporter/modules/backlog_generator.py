@@ -56,6 +56,35 @@ class BacklogGenerator:
                 self.backlog_items.append(backlog_item)
                 item_id += 1
         
+        # Extract backlog items from generic resources
+        if 'generic_resources' in analyses:
+            generic_analysis = analyses['generic_resources']
+            if 'resource_types' in generic_analysis:
+                for resource_type, analysis in generic_analysis['resource_types'].items():
+                    if 'findings' not in analysis:
+                        continue
+                    
+                    # Use simplified resource type name
+                    simple_type = resource_type.split('/')[-1] if '/' in resource_type else resource_type
+                    
+                    for finding in analysis['findings']:
+                        backlog_item = {
+                            'id': f"ITEM-{item_id:04d}",
+                            'resource_type': simple_type,
+                            'resource_name': finding.get('resource', 'N/A'),
+                            'category': finding.get('category', 'general').title(),
+                            'severity': finding.get('severity', 'medium').upper(),
+                            'issue': finding.get('issue', 'N/A'),
+                            'recommendation': finding.get('recommendation', 'N/A'),
+                            'status': 'Open',
+                            'priority': self._calculate_priority(finding.get('severity', 'medium')),
+                            'estimated_effort': self._estimate_effort(finding),
+                            'created_date': datetime.now().strftime('%Y-%m-%d')
+                        }
+                        
+                        self.backlog_items.append(backlog_item)
+                        item_id += 1
+        
         # Sort by priority (1 is highest)
         self.backlog_items.sort(key=lambda x: x['priority'])
         
