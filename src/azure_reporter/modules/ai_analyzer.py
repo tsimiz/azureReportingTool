@@ -310,6 +310,30 @@ Provide a clear, professional executive summary (3-5 paragraphs) covering:
             logger.error(f"Error generating executive summary: {e}")
             return "Error generating executive summary."
 
+    def _summarize_resources_for_analysis(self, resources: List[Dict[str, Any]], max_resources: int = 50) -> str:
+        """Summarize resources for AI analysis to avoid token limits.
+        
+        Args:
+            resources: List of resources to summarize
+            max_resources: Maximum number of resources to include in full detail
+            
+        Returns:
+            JSON string representation of resources (full or summarized)
+        """
+        if len(resources) <= max_resources:
+            return json.dumps(resources, indent=2)
+        
+        # For large resource lists, provide summary statistics and sample
+        summary = {
+            'total_count': len(resources),
+            'sample_resources': resources[:10],  # Include first 10 as samples
+            'locations': list(set(r.get('location', 'unknown') for r in resources)),
+            'resource_groups': list(set(r.get('resource_group', 'unknown') for r in resources))
+        }
+        
+        logger.info(f"Resource list too large ({len(resources)} items), providing summary instead")
+        return json.dumps(summary, indent=2)
+
     def analyze_generic_resources(self, all_resources: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Analyze all generic resources grouped by type."""
         logger.info(f"Analyzing {len(all_resources)} generic resources...")
@@ -337,11 +361,14 @@ Provide a clear, professional executive summary (3-5 paragraphs) covering:
         for resource_type, resources_list in resources_by_type.items():
             logger.info(f"Analyzing {len(resources_list)} resources of type {resource_type}...")
             
+            # Summarize resources if list is too large
+            resources_data = self._summarize_resources_for_analysis(resources_list)
+            
             prompt = f"""Analyze the following Azure resources of type '{resource_type}' against Microsoft's best practices.
 Focus on: security, performance, cost optimization, operational excellence, and reliability.
 
 Resources Data:
-{json.dumps(resources_list, indent=2)}
+{resources_data}
 
 Provide analysis in the following JSON format:
 {{

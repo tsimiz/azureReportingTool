@@ -196,6 +196,23 @@ class AzureFetcher:
             
         return vnets
 
+    def _extract_resource_group_from_id(self, resource_id: str) -> str:
+        """Extract resource group name from Azure resource ID.
+        
+        Azure resource IDs follow the pattern:
+        /subscriptions/{subscription-id}/resourceGroups/{resource-group-name}/...
+        """
+        try:
+            parts = resource_id.split('/')
+            # Find 'resourceGroups' in the path and get the next element
+            for i, part in enumerate(parts):
+                if part.lower() == 'resourcegroups' and i + 1 < len(parts):
+                    return parts[i + 1]
+            return 'Unknown'
+        except Exception as e:
+            logger.warning(f"Could not extract resource group from ID {resource_id}: {e}")
+            return 'Unknown'
+
     def fetch_generic_resources(self) -> List[Dict[str, Any]]:
         """Fetch all resources in the subscription using the generic resources API."""
         logger.info("Fetching all resources in subscription...")
@@ -208,7 +225,7 @@ class AzureFetcher:
                     'type': resource.type,
                     'location': resource.location,
                     'id': resource.id,
-                    'resource_group': resource.id.split('/')[4] if len(resource.id.split('/')) > 4 else 'Unknown',
+                    'resource_group': self._extract_resource_group_from_id(resource.id),
                     'tags': resource.tags or {},
                     'kind': getattr(resource, 'kind', None),
                     'sku': getattr(resource, 'sku', None)
