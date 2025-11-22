@@ -213,6 +213,30 @@ class AzureFetcher:
             logger.warning(f"Could not extract resource group from ID {resource_id}: {e}")
             return 'Unknown'
 
+    def _convert_sku_to_dict(self, sku: Any) -> Dict[str, Any]:
+        """Convert Azure SDK Sku object to a dictionary for JSON serialization.
+        
+        Args:
+            sku: Azure SDK Sku object or None
+            
+        Returns:
+            Dictionary representation of the Sku or None if sku is None or cannot be converted
+        """
+        if sku is None:
+            return None
+        
+        # Try to use as_dict() method if available (Azure SDK objects typically have this)
+        if hasattr(sku, 'as_dict'):
+            return sku.as_dict()
+        
+        # Fallback: if it's already a dict, return it
+        if isinstance(sku, dict):
+            return sku
+        
+        # If we can't convert it, log a warning and return None
+        logger.warning(f"Unable to convert SKU object of type {type(sku).__name__} to dictionary")
+        return None
+
     def fetch_generic_resources(self) -> List[Dict[str, Any]]:
         """Fetch all resources in the subscription using the generic resources API."""
         logger.info("Fetching all resources in subscription...")
@@ -228,7 +252,7 @@ class AzureFetcher:
                     'resource_group': self._extract_resource_group_from_id(resource.id),
                     'tags': resource.tags or {},
                     'kind': getattr(resource, 'kind', None),
-                    'sku': getattr(resource, 'sku', None)
+                    'sku': self._convert_sku_to_dict(getattr(resource, 'sku', None))
                 })
             logger.info(f"Found {len(all_resources)} total resources")
         except Exception as e:
