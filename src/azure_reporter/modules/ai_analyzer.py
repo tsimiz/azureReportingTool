@@ -310,6 +310,112 @@ Provide a clear, professional executive summary (3-5 paragraphs) covering:
             logger.error(f"Error generating executive summary: {e}")
             return "Error generating executive summary."
 
+    def _summarize_resources_for_analysis(self, resources: List[Dict[str, Any]], max_resources: int = 50) -> str:
+        """Summarize resources for AI analysis to avoid token limits.
+        
+        Args:
+            resources: List of resources to summarize
+            max_resources: Maximum number of resources to include in full detail
+            
+        Returns:
+            JSON string representation of resources (full or summarized)
+        """
+        if len(resources) <= max_resources:
+            return json.dumps(resources, indent=2)
+        
+        # For large resource lists, provide summary statistics and sample
+        summary = {
+            'total_count': len(resources),
+            'sample_resources': resources[:10],  # Include first 10 as samples
+            'locations': list(set(r.get('location', 'unknown') for r in resources)),
+            'resource_groups': list(set(r.get('resource_group', 'unknown') for r in resources))
+        }
+        
+        logger.info(f"Resource list too large ({len(resources)} items), providing summary instead")
+        return json.dumps(summary, indent=2)
+
+    def analyze_generic_resources(self, all_resources: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Analyze all generic resources grouped by type."""
+        logger.info(f"Analyzing {len(all_resources)} generic resources...")
+        
+        if not all_resources:
+            return {
+                'status': 'no_resources',
+                'findings': [],
+                'recommendations': [],
+                'resource_types': {}
+            }
+        
+        # Group resources by type
+        resources_by_type = {}
+        for resource in all_resources:
+            resource_type = resource.get('type', 'Unknown')
+            if resource_type not in resources_by_type:
+                resources_by_type[resource_type] = []
+            resources_by_type[resource_type].append(resource)
+        
+        logger.info(f"Found {len(resources_by_type)} unique resource types")
+        
+        # Analyze each resource type
+        type_analyses = {}
+        for resource_type, resources_list in resources_by_type.items():
+            logger.info(f"Analyzing {len(resources_list)} resources of type {resource_type}...")
+            
+            # Summarize resources if list is too large
+            resources_data = self._summarize_resources_for_analysis(resources_list)
+            
+            prompt = f"""Analyze the following Azure resources of type '{resource_type}' against Microsoft's best practices.
+Focus on: security, performance, cost optimization, operational excellence, and reliability.
+
+Resources Data:
+{resources_data}
+
+Provide analysis in the following JSON format:
+{{
+    "overall_score": <1-10>,
+    "findings": [
+        {{
+            "resource": "<resource_name>",
+            "category": "<security|performance|cost|operations|reliability>",
+            "severity": "<critical|high|medium|low>",
+            "issue": "<description>",
+            "recommendation": "<specific recommendation>"
+        }}
+    ],
+    "best_practices_met": ["<list of practices that are followed>"],
+    "summary": "<brief summary of this resource type's posture>"
+}}"""
+
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": "You are an Azure architecture expert specializing in best practices and recommendations. Always respond with valid JSON."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=self.temperature
+                )
+                
+                analysis = json.loads(response.choices[0].message.content)
+                type_analyses[resource_type] = analysis
+                logger.info(f"Analysis completed for {resource_type}")
+                
+            except Exception as e:
+                logger.error(f"Error analyzing {resource_type}: {e}")
+                type_analyses[resource_type] = {
+                    'status': 'error',
+                    'error': str(e),
+                    'findings': [],
+                    'recommendations': []
+                }
+        
+        return {
+            'status': 'analyzed',
+            'resource_types': type_analyses,
+            'total_resource_types': len(resources_by_type),
+            'total_resources': len(all_resources)
+        }
+
     def analyze_all_resources(self, resources: Dict[str, List[Dict[str, Any]]]) -> Dict[str, Any]:
         """Analyze all Azure resources."""
         logger.info("Starting comprehensive AI analysis of all resources...")
@@ -320,6 +426,11 @@ Provide a clear, professional executive summary (3-5 paragraphs) covering:
             'network_security_groups': self.analyze_network_security(resources.get('network_security_groups', [])),
             'virtual_networks': self.analyze_virtual_networks(resources.get('virtual_networks', []))
         }
+        
+        # Analyze generic resources if available
+        all_resources = resources.get('all_resources', [])
+        if all_resources:
+            analyses['generic_resources'] = self.analyze_generic_resources(all_resources)
         
         # Generate executive summary
         analyses['executive_summary'] = self.generate_executive_summary(analyses)

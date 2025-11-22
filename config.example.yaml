@@ -14,6 +14,9 @@ resources:
   virtual_networks: true
   resource_groups: true
   security_center: true
+  # The tool now automatically analyzes ALL resources in the subscription
+  # in addition to the specific resource types listed above
+  analyze_all_resources: true
 
 # AI analysis settings
 ai_analysis:

@@ -76,7 +76,8 @@ class PowerPointGenerator:
             f"Virtual Machines: {len(resources.get('virtual_machines', []))}",
             f"Storage Accounts: {len(resources.get('storage_accounts', []))}",
             f"Network Security Groups: {len(resources.get('network_security_groups', []))}",
-            f"Virtual Networks: {len(resources.get('virtual_networks', []))}"
+            f"Virtual Networks: {len(resources.get('virtual_networks', []))}",
+            f"Total Resources: {len(resources.get('all_resources', []))}"
         ]
         
         for i, count in enumerate(resource_counts):
@@ -265,6 +266,17 @@ class PowerPointGenerator:
                 self.add_findings_slide(resource_type, analysis)
                 self.add_recommendations_slide(resource_type, analysis)
                 self.add_best_practices_slide(resource_type, analysis)
+        
+        # Add slides for generic resources grouped by type
+        if 'generic_resources' in analyses:
+            generic_analysis = analyses['generic_resources']
+            if 'resource_types' in generic_analysis:
+                for resource_type, analysis in generic_analysis['resource_types'].items():
+                    # Use simplified resource type name for slide title
+                    simple_type = resource_type.split('/')[-1] if '/' in resource_type else resource_type
+                    self.add_findings_slide(simple_type, analysis)
+                    self.add_recommendations_slide(simple_type, analysis)
+                    self.add_best_practices_slide(simple_type, analysis)
         
         # Final summary
         self.add_summary_slide()

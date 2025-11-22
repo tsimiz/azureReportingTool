@@ -111,6 +111,8 @@ Check the `output/` directory for:
 - `improvement_backlog.json` - Backlog in JSON format
 - `improvement_backlog.md` - Human-readable backlog
 
+**Note**: The tool now analyzes **ALL resources** in your subscription, not just specific types like VMs and Storage Accounts. This means you'll get comprehensive coverage of your entire Azure environment!
+
 ## Customizing the Report
 
 To customize settings:
