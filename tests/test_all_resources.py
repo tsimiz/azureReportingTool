@@ -255,6 +255,44 @@ class TestAllResourcesFunctionality(unittest.TestCase):
             except TypeError as e:
                 self.fail(f"Resources should be JSON serializable but got: {e}")
 
+    def test_convert_sku_to_dict_helper(self):
+        """Test the _convert_sku_to_dict helper method."""
+        with patch('azure_reporter.modules.azure_fetcher.ResourceManagementClient'), \
+             patch('azure_reporter.modules.azure_fetcher.ComputeManagementClient'), \
+             patch('azure_reporter.modules.azure_fetcher.NetworkManagementClient'), \
+             patch('azure_reporter.modules.azure_fetcher.StorageManagementClient'), \
+             patch('azure_reporter.modules.azure_fetcher.ClientSecretCredential'):
+            
+            fetcher = AzureFetcher(
+                subscription_id='test-subscription',
+                tenant_id='test-tenant',
+                client_id='test-client',
+                client_secret='test-secret'
+            )
+            
+            # Test with None
+            result = fetcher._convert_sku_to_dict(None)
+            self.assertIsNone(result)
+            
+            # Test with object that has as_dict method
+            mock_sku = Mock()
+            mock_sku.as_dict.return_value = {'name': 'Standard', 'tier': 'Standard'}
+            result = fetcher._convert_sku_to_dict(mock_sku)
+            self.assertEqual(result, {'name': 'Standard', 'tier': 'Standard'})
+            
+            # Test with dict input (should return as-is)
+            dict_sku = {'name': 'Premium', 'tier': 'Premium'}
+            result = fetcher._convert_sku_to_dict(dict_sku)
+            self.assertEqual(result, dict_sku)
+            
+            # Test with object without as_dict method
+            class InvalidSku:
+                pass
+            
+            invalid_sku = InvalidSku()
+            result = fetcher._convert_sku_to_dict(invalid_sku)
+            self.assertIsNone(result)
+
 
 if __name__ == '__main__':
     unittest.main()
