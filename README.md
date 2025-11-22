@@ -4,12 +4,13 @@ A comprehensive tool to automatically generate reports and analysis of Azure env
 
 ## Features
 
-- **Automated Azure Data Fetching**: Retrieves information about your Azure resources including:
-  - Virtual Machines
-  - Storage Accounts
-  - Network Security Groups
-  - Virtual Networks
+- **Automated Azure Data Fetching**: Retrieves information about **ALL resources** in your Azure subscription, including:
+  - Virtual Machines (with detailed analysis)
+  - Storage Accounts (with detailed analysis)
+  - Network Security Groups (with detailed analysis)
+  - Virtual Networks (with detailed analysis)
   - Resource Groups
+  - **All other Azure resource types in your subscription**
 
 - **AI-Powered Analysis**: Uses OpenAI GPT-4 to analyze your Azure environment against Microsoft's best practices across:
   - Security
@@ -320,7 +321,7 @@ For issues, questions, or contributions, please open an issue on the GitHub repo
 ## Roadmap
 
 Future enhancements planned:
-- Support for more Azure resource types
+- ✅ ~~Support for more Azure resource types~~ (Now analyzes ALL resources in subscription!)
 - Cost analysis and optimization recommendations
 - Compliance checking (PCI DSS, HIPAA, etc.)
 - Historical trending and comparison
