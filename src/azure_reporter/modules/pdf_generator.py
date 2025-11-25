@@ -7,6 +7,12 @@ from fpdf.enums import XPos, YPos
 
 logger = logging.getLogger(__name__)
 
+# Constants for text and content limits
+MAX_FINDINGS_PER_SECTION = 10
+MAX_BEST_PRACTICES_PER_SECTION = 7
+MAX_ISSUE_TEXT_LENGTH = 80
+MAX_RECOMMENDATION_TEXT_LENGTH = 150
+
 
 class AzureReportPDF(FPDF):
     """Custom FPDF class with header and footer."""
@@ -129,7 +135,7 @@ class PDFGenerator:
             self.pdf.ln(3)
         
         # Findings
-        findings = analysis['findings'][:10]  # Limit to 10 findings per section
+        findings = analysis['findings'][:MAX_FINDINGS_PER_SECTION]
         for finding in findings:
             severity = finding.get('severity', 'medium').upper()
             issue = finding.get('issue', 'N/A')
@@ -145,14 +151,14 @@ class PDFGenerator:
             else:
                 self.pdf.set_text_color(100, 100, 100)
             
-            self.pdf.cell(0, 8, f"[{severity}] {issue[:80]}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            self.pdf.cell(0, 8, f"[{severity}] {issue[:MAX_ISSUE_TEXT_LENGTH]}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
             
             # Add recommendation if available
             recommendation = finding.get('recommendation', '')
             if recommendation:
                 self.pdf.set_font('Helvetica', '', 9)
                 self.pdf.set_text_color(60, 60, 60)
-                self.pdf.multi_cell(0, 5, f"  Recommendation: {recommendation[:150]}")
+                self.pdf.multi_cell(0, 5, f"  Recommendation: {recommendation[:MAX_RECOMMENDATION_TEXT_LENGTH]}")
                 self.pdf.ln(2)
         
         logger.info(f"Added findings section for {resource_type}")
@@ -175,7 +181,7 @@ class PDFGenerator:
         self.pdf.set_font('Helvetica', '', 10)
         self.pdf.set_text_color(0, 100, 0)
         
-        for practice in best_practices[:7]:
+        for practice in best_practices[:MAX_BEST_PRACTICES_PER_SECTION]:
             self.pdf.cell(0, 7, f"  {practice}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         
         self.pdf.ln(5)
