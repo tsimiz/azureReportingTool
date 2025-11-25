@@ -3,7 +3,10 @@
 # Output settings
 output:
   directory: "./output"
-  report_filename: "azure_report.pptx"
+  report_filename: "azure_report.pdf"
+  # Export format: "pdf" (default) or "pptx"
+  # PDF is recommended for wider audience compatibility
+  export_format: "pdf"
   backlog_filename: "improvement_backlog"
 
 # Azure resources to analyze
