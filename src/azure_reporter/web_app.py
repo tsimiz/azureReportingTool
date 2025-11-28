@@ -1296,9 +1296,9 @@ HTML_TEMPLATE = '''
             // Clear existing snowflakes
             container.innerHTML = '';
             
-            // Create snowflakes
+            // Create snowflakes (reduced count for better performance)
             const snowflakeChars = ['❄', '❅', '❆', '✻', '✼', '❉'];
-            const numSnowflakes = 50;
+            const numSnowflakes = 30;
             
             for (let i = 0; i < numSnowflakes; i++) {
                 const snowflake = document.createElement('div');
@@ -1322,9 +1322,12 @@ HTML_TEMPLATE = '''
         
         function loadChristmasTheme() {
             const savedTheme = localStorage.getItem('christmasTheme');
+            const toggleBtn = document.getElementById('christmasToggle');
             if (savedTheme === 'enabled') {
                 document.body.classList.add('christmas-theme');
-                document.getElementById('christmasToggle').classList.add('active');
+                if (toggleBtn) {
+                    toggleBtn.classList.add('active');
+                }
                 createSnowflakes();
             }
         }
