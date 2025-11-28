@@ -302,7 +302,7 @@ def test_env_vars_api():
             )
             assert response.status_code == 200
             data = json.loads(response.data)
-            assert data['success'] == True
+            assert data['success']
             print("✓ POST /api/env-vars saves environment variables")
             
             # Verify values were stored in current_state
@@ -310,11 +310,11 @@ def test_env_vars_api():
             assert current_state['env_vars'].get('openai_model') == 'gpt-4'
             print("✓ Environment variables stored in session state")
             
-            # Test that masked values are not overwritten
+            # Test that masked values are not overwritten (using actual mask pattern with ***)
             response = client.post(
                 '/api/env-vars',
                 json={
-                    'openai_api_key': '***masked***',  # Should be ignored
+                    'openai_api_key': 'sk-t***2345',  # Should be ignored (contains ***)
                     'openai_model': 'gpt-3.5-turbo'  # Should be updated
                 },
                 content_type='application/json'
@@ -336,7 +336,7 @@ def test_env_vars_api():
 def test_mask_secret_function():
     """Test the secret masking helper function."""
     try:
-        from azure_reporter.web_app import _mask_secret
+        from azure_reporter.web_app import _mask_secret, _is_masked_value
         
         # Test empty string
         assert _mask_secret('') == ''
@@ -352,6 +352,14 @@ def test_mask_secret_function():
         assert result.endswith('5678')
         assert '***' in result
         print("✓ Normal secrets show first and last 4 characters")
+        
+        # Test _is_masked_value function
+        assert _is_masked_value('***')
+        assert _is_masked_value('sk-t***5678')
+        assert not _is_masked_value('sk-testkey12345678')
+        assert not _is_masked_value('')
+        assert not _is_masked_value(None)
+        print("✓ _is_masked_value correctly detects masked values")
         
         return True
     except Exception as e:

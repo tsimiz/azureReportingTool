@@ -1496,7 +1496,8 @@ def api_set_env_vars():
         data = request.get_json()
         
         # Store in current state (session-only, not persisted to disk for security)
-        if data.get('openai_api_key') and not data['openai_api_key'].startswith('***'):
+        # Only update if value is provided and not a masked value
+        if data.get('openai_api_key') and not _is_masked_value(data['openai_api_key']):
             current_state['env_vars']['openai_api_key'] = data['openai_api_key']
         
         if data.get('openai_model'):
@@ -1505,7 +1506,7 @@ def api_set_env_vars():
         if data.get('azure_openai_endpoint'):
             current_state['env_vars']['azure_openai_endpoint'] = data['azure_openai_endpoint']
         
-        if data.get('azure_openai_key') and not data['azure_openai_key'].startswith('***'):
+        if data.get('azure_openai_key') and not _is_masked_value(data['azure_openai_key']):
             current_state['env_vars']['azure_openai_key'] = data['azure_openai_key']
         
         if data.get('azure_openai_deployment'):
@@ -1525,6 +1526,15 @@ def _mask_secret(secret: str) -> str:
     if len(secret) <= 8:
         return '***'
     return secret[:4] + '***' + secret[-4:]
+
+
+def _is_masked_value(value: str) -> bool:
+    """Check if a value appears to be a masked secret.
+    
+    Returns True if the value contains '***' which indicates it's a masked value
+    that should not be used to overwrite the actual secret.
+    """
+    return bool(value and '***' in value)
 
 
 @app.route('/api/run-analysis', methods=['POST'])
@@ -1600,8 +1610,11 @@ def api_run_analysis():
             azure_key = gui_env.get('azure_openai_key') or os.getenv('AZURE_OPENAI_KEY')
             azure_deployment = gui_env.get('azure_openai_deployment') or os.getenv('AZURE_OPENAI_DEPLOYMENT')
             
+            # Check if Azure OpenAI is fully configured
+            use_azure_openai = bool(azure_endpoint and azure_key and azure_deployment)
+            
             # Prefer Azure OpenAI if fully configured
-            if azure_endpoint and azure_key and azure_deployment:
+            if use_azure_openai:
                 api_key = azure_key
                 model = azure_deployment
             else:
@@ -1614,8 +1627,8 @@ def api_run_analysis():
                         api_key=api_key,
                         model=model,
                         temperature=settings.get('ai_temperature', 0.3),
-                        azure_endpoint=azure_endpoint if azure_endpoint and azure_key and azure_deployment else None,
-                        azure_deployment=azure_deployment if azure_endpoint and azure_key and azure_deployment else None
+                        azure_endpoint=azure_endpoint if use_azure_openai else None,
+                        azure_deployment=azure_deployment if use_azure_openai else None
                     )
                     analyses = analyzer.analyze_all_resources(resources)
                     executive_summary = analyses.get('executive_summary', '')
