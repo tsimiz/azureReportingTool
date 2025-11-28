@@ -26,7 +26,8 @@ current_state = {
     'subscription_id': None,
     'subscriptions': [],
     'config': None,
-    'last_report': None
+    'last_report': None,
+    'env_vars': {}  # Store environment variables set via GUI
 }
 
 
@@ -580,6 +581,121 @@ HTML_TEMPLATE = '''
                 justify-content: center;
             }
         }
+        
+        /* Backlog table styles */
+        .backlog-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        
+        .backlog-table th,
+        .backlog-table td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--azure-border);
+        }
+        
+        .backlog-table th {
+            background: var(--azure-gray);
+            font-weight: 600;
+            color: var(--azure-dark-gray);
+            position: sticky;
+            top: 0;
+        }
+        
+        .backlog-table tr:hover {
+            background: #f9f9f9;
+        }
+        
+        .backlog-table .severity-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .backlog-table .severity-badge.critical {
+            background: var(--azure-error);
+            color: white;
+        }
+        
+        .backlog-table .severity-badge.high {
+            background: var(--azure-warning);
+            color: white;
+        }
+        
+        .backlog-table .severity-badge.medium {
+            background: var(--azure-blue);
+            color: white;
+        }
+        
+        .backlog-table .severity-badge.low {
+            background: var(--azure-success);
+            color: white;
+        }
+        
+        .backlog-table .priority-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--azure-blue);
+            color: white;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        
+        .backlog-table-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid var(--azure-border);
+            border-radius: 4px;
+        }
+        
+        .backlog-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .backlog-summary-item {
+            background: var(--azure-gray);
+            padding: 12px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .backlog-summary-item .count {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--azure-blue);
+        }
+        
+        .backlog-summary-item .label {
+            font-size: 12px;
+            color: #605e5c;
+            text-transform: uppercase;
+        }
+        
+        .backlog-filters {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .backlog-filters select {
+            padding: 6px 10px;
+            border: 1px solid var(--azure-border);
+            border-radius: 4px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -614,6 +730,57 @@ HTML_TEMPLATE = '''
                         <option value="">Loading subscriptions...</option>
                     </select>
                 </div>
+            </div>
+        </div>
+
+        <!-- Environment Variables -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-icon">🔑</div>
+                Environment Variables
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info" style="margin-bottom: 16px;">
+                    Configure your API keys and credentials. These are stored in memory for the current session only.
+                </div>
+                
+                <h4 style="margin: 0 0 12px; font-size: 14px;">OpenAI API (Option A)</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="openaiApiKey">OpenAI API Key</label>
+                        <input type="password" id="openaiApiKey" placeholder="sk-...">
+                    </div>
+                    <div class="form-group">
+                        <label for="openaiModel">OpenAI Model</label>
+                        <input type="text" id="openaiModel" value="gpt-4" placeholder="gpt-4">
+                    </div>
+                </div>
+                
+                <h4 style="margin: 16px 0 12px; font-size: 14px;">Azure OpenAI (Option B)</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="azureOpenaiEndpoint">Azure OpenAI Endpoint</label>
+                        <input type="text" id="azureOpenaiEndpoint" placeholder="https://your-resource.openai.azure.com/">
+                    </div>
+                    <div class="form-group">
+                        <label for="azureOpenaiKey">Azure OpenAI Key</label>
+                        <input type="password" id="azureOpenaiKey" placeholder="Your Azure OpenAI key">
+                    </div>
+                    <div class="form-group">
+                        <label for="azureOpenaiDeployment">Azure OpenAI Deployment</label>
+                        <input type="text" id="azureOpenaiDeployment" placeholder="your-deployment-name">
+                    </div>
+                </div>
+                
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="saveEnvVars()">
+                        💾 Save Environment Variables
+                    </button>
+                    <button class="btn btn-secondary" onclick="loadEnvVars()">
+                        🔄 Load Current Values
+                    </button>
+                </div>
+                <div id="envVarsStatus" class="alert hidden" style="margin-top: 12px;"></div>
             </div>
         </div>
 
@@ -752,6 +919,63 @@ HTML_TEMPLATE = '''
                 </div>
             </div>
         </div>
+
+        <!-- Improvement Backlog -->
+        <div class="card hidden" id="backlogCard">
+            <div class="card-header">
+                <div class="card-header-icon">📋</div>
+                Improvement Backlog
+            </div>
+            <div class="card-body">
+                <div class="backlog-summary" id="backlogSummary">
+                    <!-- Backlog summary will be populated dynamically -->
+                </div>
+                
+                <div class="backlog-filters" style="margin: 16px 0;">
+                    <label style="margin-right: 8px;">Filter by severity:</label>
+                    <select id="backlogSeverityFilter" onchange="filterBacklog()">
+                        <option value="all">All</option>
+                        <option value="critical">Critical</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                    <label style="margin-left: 16px; margin-right: 8px;">Filter by category:</label>
+                    <select id="backlogCategoryFilter" onchange="filterBacklog()">
+                        <option value="all">All</option>
+                    </select>
+                </div>
+                
+                <div class="backlog-table-container" style="overflow-x: auto;">
+                    <table class="backlog-table" id="backlogTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Priority</th>
+                                <th>Severity</th>
+                                <th>Resource</th>
+                                <th>Category</th>
+                                <th>Issue</th>
+                                <th>Recommendation</th>
+                                <th>Effort</th>
+                            </tr>
+                        </thead>
+                        <tbody id="backlogTableBody">
+                            <!-- Backlog items will be populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="actions" style="margin-top: 20px;">
+                    <button class="btn btn-success" onclick="downloadReport('backlog')">
+                        📋 Download Backlog (CSV)
+                    </button>
+                    <button class="btn btn-secondary" onclick="downloadReport('backlog-json')">
+                        📄 Download Backlog (JSON)
+                    </button>
+                </div>
+            </div>
+        </div>
     </main>
 
     <footer class="footer">
@@ -760,11 +984,13 @@ HTML_TEMPLATE = '''
 
     <script>
         let analysisResult = null;
+        let backlogItems = [];
         
         // Check login status on page load
         document.addEventListener('DOMContentLoaded', function() {
             checkLoginStatus();
             loadSubscriptions();
+            loadEnvVars();
         });
         
         async function checkLoginStatus() {
@@ -986,6 +1212,171 @@ HTML_TEMPLATE = '''
             }
             
             reportPreview.innerHTML = findingsHtml;
+            
+            // Display backlog if available
+            if (result.backlog && result.backlog.length > 0) {
+                displayBacklog(result.backlog);
+                document.getElementById('backlogCard').classList.remove('hidden');
+            }
+        }
+        
+        function displayBacklog(items) {
+            backlogItems = items;
+            
+            // Update summary
+            const summary = document.getElementById('backlogSummary');
+            const criticalCount = items.filter(i => i.severity === 'CRITICAL').length;
+            const highCount = items.filter(i => i.severity === 'HIGH').length;
+            const mediumCount = items.filter(i => i.severity === 'MEDIUM').length;
+            const lowCount = items.filter(i => i.severity === 'LOW').length;
+            
+            summary.innerHTML = `
+                <div class="backlog-summary-item">
+                    <div class="count">${items.length}</div>
+                    <div class="label">Total Items</div>
+                </div>
+                <div class="backlog-summary-item">
+                    <div class="count" style="color: var(--azure-error);">${criticalCount}</div>
+                    <div class="label">Critical</div>
+                </div>
+                <div class="backlog-summary-item">
+                    <div class="count" style="color: var(--azure-warning);">${highCount}</div>
+                    <div class="label">High</div>
+                </div>
+                <div class="backlog-summary-item">
+                    <div class="count" style="color: var(--azure-blue);">${mediumCount}</div>
+                    <div class="label">Medium</div>
+                </div>
+                <div class="backlog-summary-item">
+                    <div class="count" style="color: var(--azure-success);">${lowCount}</div>
+                    <div class="label">Low</div>
+                </div>
+            `;
+            
+            // Populate category filter
+            const categories = [...new Set(items.map(i => i.category))];
+            const categoryFilter = document.getElementById('backlogCategoryFilter');
+            categoryFilter.innerHTML = '<option value="all">All</option>';
+            categories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                categoryFilter.appendChild(option);
+            });
+            
+            // Display table
+            renderBacklogTable(items);
+        }
+        
+        function renderBacklogTable(items) {
+            const tbody = document.getElementById('backlogTableBody');
+            tbody.innerHTML = '';
+            
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">No backlog items found.</td></tr>';
+                return;
+            }
+            
+            items.forEach(item => {
+                const severityClass = item.severity.toLowerCase();
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.id}</td>
+                    <td><span class="priority-badge">${item.priority}</span></td>
+                    <td><span class="severity-badge ${severityClass}">${item.severity}</span></td>
+                    <td>${item.resource_name}</td>
+                    <td>${item.category}</td>
+                    <td>${item.issue}</td>
+                    <td>${item.recommendation}</td>
+                    <td>${item.estimated_effort}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        function filterBacklog() {
+            const severityFilter = document.getElementById('backlogSeverityFilter').value;
+            const categoryFilter = document.getElementById('backlogCategoryFilter').value;
+            
+            let filtered = backlogItems;
+            
+            if (severityFilter !== 'all') {
+                filtered = filtered.filter(item => item.severity.toLowerCase() === severityFilter);
+            }
+            
+            if (categoryFilter !== 'all') {
+                filtered = filtered.filter(item => item.category === categoryFilter);
+            }
+            
+            renderBacklogTable(filtered);
+        }
+        
+        // Environment Variables Functions
+        async function saveEnvVars() {
+            const envVars = {
+                openai_api_key: document.getElementById('openaiApiKey').value,
+                openai_model: document.getElementById('openaiModel').value,
+                azure_openai_endpoint: document.getElementById('azureOpenaiEndpoint').value,
+                azure_openai_key: document.getElementById('azureOpenaiKey').value,
+                azure_openai_deployment: document.getElementById('azureOpenaiDeployment').value
+            };
+            
+            try {
+                const response = await fetch('/api/env-vars', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(envVars)
+                });
+                
+                const result = await response.json();
+                const statusDiv = document.getElementById('envVarsStatus');
+                
+                if (result.success) {
+                    statusDiv.className = 'alert alert-success';
+                    statusDiv.textContent = 'Environment variables saved successfully!';
+                } else {
+                    statusDiv.className = 'alert alert-error';
+                    statusDiv.textContent = 'Failed to save: ' + result.error;
+                }
+                statusDiv.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    statusDiv.classList.add('hidden');
+                }, 3000);
+            } catch (error) {
+                console.error('Error saving environment variables:', error);
+                const statusDiv = document.getElementById('envVarsStatus');
+                statusDiv.className = 'alert alert-error';
+                statusDiv.textContent = 'Error saving environment variables';
+                statusDiv.classList.remove('hidden');
+            }
+        }
+        
+        async function loadEnvVars() {
+            try {
+                const response = await fetch('/api/env-vars');
+                const data = await response.json();
+                
+                if (data.openai_api_key) {
+                    document.getElementById('openaiApiKey').value = data.openai_api_key;
+                }
+                if (data.openai_model) {
+                    document.getElementById('openaiModel').value = data.openai_model;
+                }
+                if (data.azure_openai_endpoint) {
+                    document.getElementById('azureOpenaiEndpoint').value = data.azure_openai_endpoint;
+                }
+                if (data.azure_openai_key) {
+                    document.getElementById('azureOpenaiKey').value = data.azure_openai_key;
+                }
+                if (data.azure_openai_deployment) {
+                    document.getElementById('azureOpenaiDeployment').value = data.azure_openai_deployment;
+                }
+            } catch (error) {
+                console.error('Error loading environment variables:', error);
+            }
         }
         
         function formatCategoryName(name) {
@@ -1079,6 +1470,63 @@ def api_set_subscription():
         return jsonify({'success': False, 'error': 'Failed to set subscription'})
 
 
+@app.route('/api/env-vars', methods=['GET'])
+def api_get_env_vars():
+    """Get current environment variables (masked for security)."""
+    # Load from environment and merge with GUI-set values
+    env_config = {}
+    
+    # Check GUI-set values first, then fall back to environment
+    openai_key = current_state['env_vars'].get('openai_api_key') or os.getenv('OPENAI_API_KEY', '')
+    azure_key = current_state['env_vars'].get('azure_openai_key') or os.getenv('AZURE_OPENAI_KEY', '')
+    
+    env_config['openai_api_key'] = _mask_secret(openai_key)
+    env_config['openai_model'] = current_state['env_vars'].get('openai_model') or os.getenv('OPENAI_MODEL', 'gpt-4')
+    env_config['azure_openai_endpoint'] = current_state['env_vars'].get('azure_openai_endpoint') or os.getenv('AZURE_OPENAI_ENDPOINT', '')
+    env_config['azure_openai_key'] = _mask_secret(azure_key)
+    env_config['azure_openai_deployment'] = current_state['env_vars'].get('azure_openai_deployment') or os.getenv('AZURE_OPENAI_DEPLOYMENT', '')
+    
+    return jsonify(env_config)
+
+
+@app.route('/api/env-vars', methods=['POST'])
+def api_set_env_vars():
+    """Set environment variables for the current session."""
+    try:
+        data = request.get_json()
+        
+        # Store in current state (session-only, not persisted to disk for security)
+        if data.get('openai_api_key') and not data['openai_api_key'].startswith('***'):
+            current_state['env_vars']['openai_api_key'] = data['openai_api_key']
+        
+        if data.get('openai_model'):
+            current_state['env_vars']['openai_model'] = data['openai_model']
+        
+        if data.get('azure_openai_endpoint'):
+            current_state['env_vars']['azure_openai_endpoint'] = data['azure_openai_endpoint']
+        
+        if data.get('azure_openai_key') and not data['azure_openai_key'].startswith('***'):
+            current_state['env_vars']['azure_openai_key'] = data['azure_openai_key']
+        
+        if data.get('azure_openai_deployment'):
+            current_state['env_vars']['azure_openai_deployment'] = data['azure_openai_deployment']
+        
+        logger.info("Environment variables updated via GUI")
+        return jsonify({'success': True})
+    except Exception as e:
+        logger.error(f"Error setting environment variables: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+def _mask_secret(secret: str) -> str:
+    """Mask a secret value for display, showing only first and last 4 characters."""
+    if not secret:
+        return ''
+    if len(secret) <= 8:
+        return '***'
+    return secret[:4] + '***' + secret[-4:]
+
+
 @app.route('/api/run-analysis', methods=['POST'])
 def api_run_analysis():
     """Run the Azure analysis."""
@@ -1142,18 +1590,32 @@ def api_run_analysis():
         if config['ai_analysis']['enabled']:
             logger.info("Running AI analysis...")
             
-            # Get OpenAI config from environment
-            config_loader = ConfigLoader()
-            openai_config = config_loader.get_openai_config()
+            # Get OpenAI config - prefer GUI-set values over environment
+            gui_env = current_state.get('env_vars', {})
             
-            if openai_config.get('api_key'):
+            # Determine API configuration
+            openai_api_key = gui_env.get('openai_api_key') or os.getenv('OPENAI_API_KEY')
+            openai_model = gui_env.get('openai_model') or os.getenv('OPENAI_MODEL', 'gpt-4')
+            azure_endpoint = gui_env.get('azure_openai_endpoint') or os.getenv('AZURE_OPENAI_ENDPOINT')
+            azure_key = gui_env.get('azure_openai_key') or os.getenv('AZURE_OPENAI_KEY')
+            azure_deployment = gui_env.get('azure_openai_deployment') or os.getenv('AZURE_OPENAI_DEPLOYMENT')
+            
+            # Prefer Azure OpenAI if fully configured
+            if azure_endpoint and azure_key and azure_deployment:
+                api_key = azure_key
+                model = azure_deployment
+            else:
+                api_key = openai_api_key
+                model = settings.get('ai_model', openai_model)
+            
+            if api_key:
                 try:
                     analyzer = AIAnalyzer(
-                        api_key=openai_config['api_key'],
-                        model=openai_config.get('model', settings.get('ai_model', 'gpt-4')),
+                        api_key=api_key,
+                        model=model,
                         temperature=settings.get('ai_temperature', 0.3),
-                        azure_endpoint=openai_config.get('azure_endpoint'),
-                        azure_deployment=openai_config.get('azure_deployment')
+                        azure_endpoint=azure_endpoint if azure_endpoint and azure_key and azure_deployment else None,
+                        azure_deployment=azure_deployment if azure_endpoint and azure_key and azure_deployment else None
                     )
                     analyses = analyzer.analyze_all_resources(resources)
                     executive_summary = analyses.get('executive_summary', '')
@@ -1196,13 +1658,17 @@ def api_run_analysis():
         backlog_gen.extract_backlog_items(analyses)
         backlog_gen.generate_all_formats(output_dir)
         
+        # Get backlog items for the response
+        backlog_items = backlog_gen.backlog_items
+        
         # Store result for download
         current_state['last_report'] = {
             'output_dir': output_dir,
             'report_filename': report_filename,
             'export_format': export_format,
             'resources': resources,
-            'analyses': analyses
+            'analyses': analyses,
+            'backlog': backlog_items
         }
         
         logger.info("Analysis complete")
@@ -1217,6 +1683,7 @@ def api_run_analysis():
             },
             'executive_summary': executive_summary,
             'analyses': analyses,
+            'backlog': backlog_items,
             'output_path': output_path
         })
         
@@ -1284,6 +1751,21 @@ def api_download(format):
                 mimetype='text/csv',
                 as_attachment=True,
                 download_name='improvement_backlog.csv'
+            )
+        elif format == 'backlog-json':
+            filepath = os.path.join(output_dir, 'improvement_backlog.json')
+            
+            # Generate backlog if it doesn't exist
+            if not os.path.exists(filepath):
+                backlog_gen = BacklogGenerator()
+                backlog_gen.extract_backlog_items(report['analyses'])
+                backlog_gen.generate_all_formats(output_dir)
+            
+            return send_file(
+                filepath,
+                mimetype='application/json',
+                as_attachment=True,
+                download_name='improvement_backlog.json'
             )
         else:
             return jsonify({'error': f'Unknown format: {format}'}), 400

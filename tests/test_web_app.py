@@ -248,6 +248,177 @@ def test_ensure_file_extension():
         return False
 
 
+def test_env_vars_routes_exist():
+    """Test that environment variables API routes exist."""
+    try:
+        from azure_reporter.web_app import app
+        
+        # Get list of registered rules
+        rules = {rule.rule for rule in app.url_map.iter_rules()}
+        
+        expected_routes = [
+            '/api/env-vars'
+        ]
+        
+        all_found = True
+        for route in expected_routes:
+            found = route in rules
+            symbol = "✓" if found else "✗"
+            print(f"  {symbol} Route: {route}")
+            all_found = all_found and found
+        
+        return all_found
+    except Exception as e:
+        print(f"✗ Environment variables route check failed: {e}")
+        return False
+
+
+def test_env_vars_api():
+    """Test the environment variables API endpoints."""
+    try:
+        from azure_reporter.web_app import app, current_state
+        
+        with app.test_client() as client:
+            # Test GET endpoint - should return empty/masked values initially
+            response = client.get('/api/env-vars')
+            assert response.status_code == 200
+            data = json.loads(response.data)
+            assert 'openai_api_key' in data
+            assert 'openai_model' in data
+            assert 'azure_openai_endpoint' in data
+            print("✓ GET /api/env-vars returns expected fields")
+            
+            # Test POST endpoint - setting environment variables
+            response = client.post(
+                '/api/env-vars',
+                json={
+                    'openai_api_key': 'sk-test-key-12345',
+                    'openai_model': 'gpt-4',
+                    'azure_openai_endpoint': 'https://test.openai.azure.com/',
+                    'azure_openai_key': 'azure-test-key-12345',
+                    'azure_openai_deployment': 'test-deployment'
+                },
+                content_type='application/json'
+            )
+            assert response.status_code == 200
+            data = json.loads(response.data)
+            assert data['success'] == True
+            print("✓ POST /api/env-vars saves environment variables")
+            
+            # Verify values were stored in current_state
+            assert current_state['env_vars'].get('openai_api_key') == 'sk-test-key-12345'
+            assert current_state['env_vars'].get('openai_model') == 'gpt-4'
+            print("✓ Environment variables stored in session state")
+            
+            # Test that masked values are not overwritten
+            response = client.post(
+                '/api/env-vars',
+                json={
+                    'openai_api_key': '***masked***',  # Should be ignored
+                    'openai_model': 'gpt-3.5-turbo'  # Should be updated
+                },
+                content_type='application/json'
+            )
+            assert response.status_code == 200
+            assert current_state['env_vars'].get('openai_api_key') == 'sk-test-key-12345'  # Unchanged
+            assert current_state['env_vars'].get('openai_model') == 'gpt-3.5-turbo'  # Updated
+            print("✓ Masked values are not overwritten")
+            
+            # Clean up
+            current_state['env_vars'] = {}
+            
+            return True
+    except Exception as e:
+        print(f"✗ Environment variables API test failed: {e}")
+        return False
+
+
+def test_mask_secret_function():
+    """Test the secret masking helper function."""
+    try:
+        from azure_reporter.web_app import _mask_secret
+        
+        # Test empty string
+        assert _mask_secret('') == ''
+        print("✓ Empty string returns empty")
+        
+        # Test short secret
+        assert _mask_secret('short') == '***'
+        print("✓ Short secrets are fully masked")
+        
+        # Test normal secret
+        result = _mask_secret('sk-testkey12345678')
+        assert result.startswith('sk-t')
+        assert result.endswith('5678')
+        assert '***' in result
+        print("✓ Normal secrets show first and last 4 characters")
+        
+        return True
+    except Exception as e:
+        print(f"✗ _mask_secret test failed: {e}")
+        return False
+
+
+def test_index_page_has_env_vars_section():
+    """Test that the index page includes environment variables section."""
+    try:
+        from azure_reporter.web_app import app
+        
+        with app.test_client() as client:
+            response = client.get('/')
+            assert response.status_code == 200
+            html = response.data.decode('utf-8')
+            
+            checks = [
+                ('Environment Variables' in html, 'Environment Variables section header'),
+                ('openaiApiKey' in html, 'OpenAI API Key input field'),
+                ('azureOpenaiEndpoint' in html, 'Azure OpenAI Endpoint input field'),
+                ('saveEnvVars' in html, 'Save Environment Variables function'),
+            ]
+            
+            all_passed = True
+            for check, name in checks:
+                symbol = "✓" if check else "✗"
+                print(f"  {symbol} {name}")
+                all_passed = all_passed and check
+            
+            return all_passed
+    except Exception as e:
+        print(f"✗ Index page environment variables section test failed: {e}")
+        return False
+
+
+def test_index_page_has_backlog_section():
+    """Test that the index page includes backlog section."""
+    try:
+        from azure_reporter.web_app import app
+        
+        with app.test_client() as client:
+            response = client.get('/')
+            assert response.status_code == 200
+            html = response.data.decode('utf-8')
+            
+            checks = [
+                ('Improvement Backlog' in html, 'Improvement Backlog section header'),
+                ('backlogCard' in html, 'Backlog card container'),
+                ('backlogTable' in html, 'Backlog table'),
+                ('backlogSeverityFilter' in html, 'Severity filter'),
+                ('backlogCategoryFilter' in html, 'Category filter'),
+                ('filterBacklog' in html, 'Filter backlog function'),
+            ]
+            
+            all_passed = True
+            for check, name in checks:
+                symbol = "✓" if check else "✗"
+                print(f"  {symbol} {name}")
+                all_passed = all_passed and check
+            
+            return all_passed
+    except Exception as e:
+        print(f"✗ Index page backlog section test failed: {e}")
+        return False
+
+
 def run_all_tests():
     """Run all web app tests."""
     print("="*60)
@@ -300,6 +471,31 @@ def run_all_tests():
     print("Test 9: ensure_file_extension Helper")
     print("-" * 60)
     results.append(test_ensure_file_extension())
+    print()
+    
+    print("Test 10: Environment Variables Routes")
+    print("-" * 60)
+    results.append(test_env_vars_routes_exist())
+    print()
+    
+    print("Test 11: Environment Variables API")
+    print("-" * 60)
+    results.append(test_env_vars_api())
+    print()
+    
+    print("Test 12: Mask Secret Function")
+    print("-" * 60)
+    results.append(test_mask_secret_function())
+    print()
+    
+    print("Test 13: Index Page Environment Variables Section")
+    print("-" * 60)
+    results.append(test_index_page_has_env_vars_section())
+    print()
+    
+    print("Test 14: Index Page Backlog Section")
+    print("-" * 60)
+    results.append(test_index_page_has_backlog_section())
     print()
     
     print("="*60)
