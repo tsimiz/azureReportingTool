@@ -260,6 +260,7 @@ HTML_TEMPLATE = '''
         
         .form-group select,
         .form-group input[type="text"],
+        .form-group input[type="password"],
         .form-group input[type="number"] {
             width: 100%;
             padding: 10px 12px;
@@ -268,6 +269,8 @@ HTML_TEMPLATE = '''
             font-size: 14px;
             font-family: inherit;
             transition: border-color 0.2s;
+            height: 42px;
+            box-sizing: border-box;
         }
         
         .form-group select:focus,
@@ -281,6 +284,58 @@ HTML_TEMPLATE = '''
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 16px;
+        }
+        
+        .config-section {
+            background: var(--azure-gray);
+            border: 1px solid var(--azure-border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .config-section-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--azure-border);
+        }
+        
+        .config-section-header h4 {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--azure-dark-blue);
+        }
+        
+        .config-section-header .badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+        
+        .config-section-header .badge-openai {
+            background: #10a37f;
+            color: white;
+        }
+        
+        .config-section-header .badge-azure {
+            background: var(--azure-blue);
+            color: white;
+        }
+        
+        .config-section-header .badge-sp {
+            background: #5c2d91;
+            color: white;
+        }
+        
+        .config-section-description {
+            font-size: 13px;
+            color: #605e5c;
+            margin-bottom: 12px;
         }
         
         .checkbox-group {
@@ -714,7 +769,14 @@ HTML_TEMPLATE = '''
     <main class="main-container">
         <!-- Login Status Alert -->
         <div id="loginAlert" class="alert alert-warning hidden">
-            <strong>Not logged in to Azure.</strong> Please run <code>az login</code> in your terminal to authenticate.
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <strong>Not logged in to Azure.</strong> Click the button to login or run <code>az login</code> in your terminal.
+                </div>
+                <button class="btn btn-primary" onclick="azureLogin()" id="azureLoginBtn" style="margin: 0;">
+                    🔐 Login to Azure
+                </button>
+            </div>
         </div>
 
         <!-- Subscription Selection -->
@@ -730,6 +792,14 @@ HTML_TEMPLATE = '''
                         <option value="">Loading subscriptions...</option>
                     </select>
                 </div>
+                <div style="margin-top: 12px;">
+                    <button class="btn btn-secondary" onclick="refreshSubscriptions()" style="margin-right: 8px;">
+                        🔄 Refresh Subscriptions
+                    </button>
+                    <button class="btn btn-primary" onclick="azureLogin()" id="azureLoginBtn2">
+                        🔐 Login to Azure
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -737,44 +807,88 @@ HTML_TEMPLATE = '''
         <div class="card">
             <div class="card-header">
                 <div class="card-header-icon">🔑</div>
-                Environment Variables
+                Configuration
             </div>
             <div class="card-body">
-                <div class="alert alert-info" style="margin-bottom: 16px;">
+                <div class="alert alert-info" style="margin-bottom: 20px;">
                     Configure your API keys and credentials. These are stored in memory for the current session only.
+                    Choose <strong>either</strong> OpenAI API <strong>or</strong> Azure AI Foundry for AI analysis.
                 </div>
                 
-                <h4 style="margin: 0 0 12px; font-size: 14px;">OpenAI API (Option A)</h4>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="openaiApiKey">OpenAI API Key</label>
-                        <input type="password" id="openaiApiKey" placeholder="sk-...">
+                <!-- Service Principal Section -->
+                <div class="config-section">
+                    <div class="config-section-header">
+                        <h4>🔐 Azure Service Principal</h4>
+                        <span class="badge badge-sp">Authentication</span>
                     </div>
-                    <div class="form-group">
-                        <label for="openaiModel">OpenAI Model</label>
-                        <input type="text" id="openaiModel" value="gpt-4" placeholder="gpt-4">
+                    <p class="config-section-description">
+                        Optional: Configure Service Principal for programmatic Azure access. If not set, Azure CLI credentials will be used.
+                    </p>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="azureTenantId">Tenant ID</label>
+                            <input type="text" id="azureTenantId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                        </div>
+                        <div class="form-group">
+                            <label for="azureClientId">Client ID (App ID)</label>
+                            <input type="text" id="azureClientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                        </div>
+                        <div class="form-group">
+                            <label for="azureClientSecret">Client Secret</label>
+                            <input type="password" id="azureClientSecret" placeholder="Your client secret">
+                        </div>
                     </div>
                 </div>
                 
-                <h4 style="margin: 16px 0 12px; font-size: 14px;">Azure OpenAI (Option B)</h4>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="azureOpenaiEndpoint">Azure OpenAI Endpoint</label>
-                        <input type="text" id="azureOpenaiEndpoint" placeholder="https://your-resource.openai.azure.com/">
+                <!-- OpenAI API Section -->
+                <div class="config-section">
+                    <div class="config-section-header">
+                        <h4>🤖 OpenAI API</h4>
+                        <span class="badge badge-openai">Option A</span>
                     </div>
-                    <div class="form-group">
-                        <label for="azureOpenaiKey">Azure OpenAI Key</label>
-                        <input type="password" id="azureOpenaiKey" placeholder="Your Azure OpenAI key">
+                    <p class="config-section-description">
+                        Use OpenAI's API directly. Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a>.
+                    </p>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="openaiApiKey">API Key</label>
+                            <input type="password" id="openaiApiKey" placeholder="sk-proj-xxxxxxxxxxxxxxxxxxxxxxxx">
+                        </div>
+                        <div class="form-group">
+                            <label for="openaiModel">Model</label>
+                            <input type="text" id="openaiModel" value="gpt-4" placeholder="gpt-4 or gpt-3.5-turbo">
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="azureOpenaiDeployment">Azure OpenAI Deployment</label>
-                        <input type="text" id="azureOpenaiDeployment" placeholder="your-deployment-name">
+                </div>
+                
+                <!-- Azure AI Foundry Section -->
+                <div class="config-section">
+                    <div class="config-section-header">
+                        <h4>☁️ Azure AI Foundry (Azure OpenAI)</h4>
+                        <span class="badge badge-azure">Option B</span>
+                    </div>
+                    <p class="config-section-description">
+                        Use Azure OpenAI Service. Configure your Azure OpenAI resource from the <a href="https://portal.azure.com" target="_blank">Azure Portal</a>.
+                    </p>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="azureOpenaiEndpoint">Endpoint URL</label>
+                            <input type="text" id="azureOpenaiEndpoint" placeholder="https://your-resource.openai.azure.com/">
+                        </div>
+                        <div class="form-group">
+                            <label for="azureOpenaiKey">API Key</label>
+                            <input type="password" id="azureOpenaiKey" placeholder="Your Azure OpenAI key">
+                        </div>
+                        <div class="form-group">
+                            <label for="azureOpenaiDeployment">Deployment Name</label>
+                            <input type="text" id="azureOpenaiDeployment" placeholder="gpt-4-deployment">
+                        </div>
                     </div>
                 </div>
                 
                 <div class="actions">
                     <button class="btn btn-primary" onclick="saveEnvVars()">
-                        💾 Save Environment Variables
+                        💾 Save Configuration
                     </button>
                     <button class="btn btn-secondary" onclick="loadEnvVars()">
                         🔄 Load Current Values
@@ -1314,6 +1428,9 @@ HTML_TEMPLATE = '''
         // Environment Variables Functions
         async function saveEnvVars() {
             const envVars = {
+                azure_tenant_id: document.getElementById('azureTenantId').value,
+                azure_client_id: document.getElementById('azureClientId').value,
+                azure_client_secret: document.getElementById('azureClientSecret').value,
                 openai_api_key: document.getElementById('openaiApiKey').value,
                 openai_model: document.getElementById('openaiModel').value,
                 azure_openai_endpoint: document.getElementById('azureOpenaiEndpoint').value,
@@ -1335,7 +1452,7 @@ HTML_TEMPLATE = '''
                 
                 if (result.success) {
                     statusDiv.className = 'alert alert-success';
-                    statusDiv.textContent = 'Environment variables saved successfully!';
+                    statusDiv.textContent = 'Configuration saved successfully!';
                 } else {
                     statusDiv.className = 'alert alert-error';
                     statusDiv.textContent = 'Failed to save: ' + result.error;
@@ -1346,10 +1463,10 @@ HTML_TEMPLATE = '''
                     statusDiv.classList.add('hidden');
                 }, 3000);
             } catch (error) {
-                console.error('Error saving environment variables:', error);
+                console.error('Error saving configuration:', error);
                 const statusDiv = document.getElementById('envVarsStatus');
                 statusDiv.className = 'alert alert-error';
-                statusDiv.textContent = 'Error saving environment variables';
+                statusDiv.textContent = 'Error saving configuration';
                 statusDiv.classList.remove('hidden');
             }
         }
@@ -1359,6 +1476,15 @@ HTML_TEMPLATE = '''
                 const response = await fetch('/api/env-vars');
                 const data = await response.json();
                 
+                if (data.azure_tenant_id) {
+                    document.getElementById('azureTenantId').value = data.azure_tenant_id;
+                }
+                if (data.azure_client_id) {
+                    document.getElementById('azureClientId').value = data.azure_client_id;
+                }
+                if (data.azure_client_secret) {
+                    document.getElementById('azureClientSecret').value = data.azure_client_secret;
+                }
                 if (data.openai_api_key) {
                     document.getElementById('openaiApiKey').value = data.openai_api_key;
                 }
@@ -1375,8 +1501,67 @@ HTML_TEMPLATE = '''
                     document.getElementById('azureOpenaiDeployment').value = data.azure_openai_deployment;
                 }
             } catch (error) {
-                console.error('Error loading environment variables:', error);
+                console.error('Error loading configuration:', error);
             }
+        }
+        
+        async function azureLogin() {
+            try {
+                const response = await fetch('/api/azure-login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Azure login initiated. Please check your browser for the login prompt or follow the device code instructions shown.');
+                    // Poll for login completion
+                    setTimeout(async () => {
+                        await checkLoginStatus();
+                        await loadSubscriptions();
+                    }, 5000);
+                } else if (result.device_code) {
+                    alert(`To sign in, use a web browser to open the page https://microsoft.com/devicelogin and enter the code: ${result.user_code}`);
+                    // Poll for login completion
+                    pollLoginStatus();
+                } else {
+                    alert('Login failed: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error during Azure login:', error);
+                alert('Error initiating Azure login. Please try running "az login" in your terminal.');
+            }
+        }
+        
+        async function pollLoginStatus() {
+            let attempts = 0;
+            const maxAttempts = 60; // 5 minutes max
+            
+            const poll = async () => {
+                attempts++;
+                const status = await fetch('/api/login-status');
+                const data = await status.json();
+                
+                if (data.logged_in) {
+                    await checkLoginStatus();
+                    await loadSubscriptions();
+                    return;
+                }
+                
+                if (attempts < maxAttempts) {
+                    setTimeout(poll, 5000);
+                }
+            };
+            
+            setTimeout(poll, 5000);
+        }
+        
+        async function refreshSubscriptions() {
+            await loadSubscriptions();
+            await checkLoginStatus();
         }
         
         function formatCategoryName(name) {
@@ -1470,11 +1655,119 @@ def api_set_subscription():
         return jsonify({'success': False, 'error': 'Failed to set subscription'})
 
 
+@app.route('/api/azure-login', methods=['POST'])
+def api_azure_login():
+    """Initiate Azure CLI login using device code flow."""
+    try:
+        # Use device code flow which works without browser interaction
+        result = subprocess.run(
+            ['az', 'login', '--use-device-code'],
+            capture_output=True,
+            text=True,
+            timeout=10  # Short timeout to get the device code quickly
+        )
+        
+        # Check if we got a device code in the output
+        if 'devicelogin' in result.stderr.lower() or 'device' in result.stderr.lower():
+            # Extract user code from the message
+            import re
+            code_match = re.search(r'code\s+([A-Z0-9]{9})', result.stderr)
+            if code_match:
+                user_code = code_match.group(1)
+                return jsonify({
+                    'success': False,
+                    'device_code': True,
+                    'user_code': user_code,
+                    'message': f'To sign in, use a web browser to open https://microsoft.com/devicelogin and enter the code {user_code}'
+                })
+        
+        # If login succeeded immediately
+        if result.returncode == 0:
+            return jsonify({'success': True})
+        
+        return jsonify({
+            'success': False,
+            'error': result.stderr or 'Login failed'
+        })
+        
+    except subprocess.TimeoutExpired:
+        # Device code flow - command is waiting for user input
+        # Try to get the device code by running in background
+        try:
+            # Start the login process in background
+            process = subprocess.Popen(
+                ['az', 'login', '--use-device-code'],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            
+            # Read stderr for the device code message
+            import select
+            import time
+            
+            output = ""
+            start_time = time.time()
+            while time.time() - start_time < 5:
+                if process.stderr:
+                    line = process.stderr.readline()
+                    if line:
+                        output += line
+                        if 'devicelogin' in output.lower():
+                            break
+                time.sleep(0.1)
+            
+            # Extract user code from output
+            import re
+            code_match = re.search(r'code\s+([A-Z0-9]{9})', output)
+            if code_match:
+                user_code = code_match.group(1)
+                return jsonify({
+                    'success': False,
+                    'device_code': True,
+                    'user_code': user_code,
+                    'message': f'To sign in, use a web browser to open https://microsoft.com/devicelogin and enter the code {user_code}'
+                })
+                
+            return jsonify({
+                'success': False,
+                'device_code': True,
+                'message': 'Please check your terminal for the device code or run "az login" manually.'
+            })
+        except Exception as e:
+            logger.error(f"Error in background login: {e}")
+            return jsonify({
+                'success': False,
+                'error': 'Login process started. Please complete authentication in your browser or terminal.'
+            })
+            
+    except FileNotFoundError:
+        return jsonify({
+            'success': False,
+            'error': 'Azure CLI is not installed. Please install Azure CLI first.'
+        })
+    except Exception as e:
+        logger.error(f"Error during Azure login: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+
 @app.route('/api/env-vars', methods=['GET'])
 def api_get_env_vars():
     """Get current environment variables (masked for security)."""
     # Load from environment and merge with GUI-set values
     env_config = {}
+    
+    # Service Principal credentials
+    tenant_id = current_state['env_vars'].get('azure_tenant_id') or os.getenv('AZURE_TENANT_ID', '')
+    client_id = current_state['env_vars'].get('azure_client_id') or os.getenv('AZURE_CLIENT_ID', '')
+    client_secret = current_state['env_vars'].get('azure_client_secret') or os.getenv('AZURE_CLIENT_SECRET', '')
+    
+    env_config['azure_tenant_id'] = tenant_id  # Not masked as it's not as sensitive
+    env_config['azure_client_id'] = client_id  # Not masked as it's not as sensitive
+    env_config['azure_client_secret'] = _mask_secret(client_secret)
     
     # Check GUI-set values first, then fall back to environment
     openai_key = current_state['env_vars'].get('openai_api_key') or os.getenv('OPENAI_API_KEY', '')
@@ -1497,12 +1790,25 @@ def api_set_env_vars():
         
         # Store in current state (session-only, not persisted to disk for security)
         # Only update if value is provided and not a masked value
+        
+        # Service Principal credentials
+        if data.get('azure_tenant_id'):
+            current_state['env_vars']['azure_tenant_id'] = data['azure_tenant_id']
+        
+        if data.get('azure_client_id'):
+            current_state['env_vars']['azure_client_id'] = data['azure_client_id']
+        
+        if data.get('azure_client_secret') and not _is_masked_value(data['azure_client_secret']):
+            current_state['env_vars']['azure_client_secret'] = data['azure_client_secret']
+        
+        # OpenAI credentials
         if data.get('openai_api_key') and not _is_masked_value(data['openai_api_key']):
             current_state['env_vars']['openai_api_key'] = data['openai_api_key']
         
         if data.get('openai_model'):
             current_state['env_vars']['openai_model'] = data['openai_model']
         
+        # Azure OpenAI credentials
         if data.get('azure_openai_endpoint'):
             current_state['env_vars']['azure_openai_endpoint'] = data['azure_openai_endpoint']
         

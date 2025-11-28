@@ -368,7 +368,7 @@ def test_mask_secret_function():
 
 
 def test_index_page_has_env_vars_section():
-    """Test that the index page includes environment variables section."""
+    """Test that the index page includes configuration section."""
     try:
         from azure_reporter.web_app import app
         
@@ -378,10 +378,10 @@ def test_index_page_has_env_vars_section():
             html = response.data.decode('utf-8')
             
             checks = [
-                ('Environment Variables' in html, 'Environment Variables section header'),
+                ('Configuration' in html, 'Configuration section header'),
                 ('openaiApiKey' in html, 'OpenAI API Key input field'),
                 ('azureOpenaiEndpoint' in html, 'Azure OpenAI Endpoint input field'),
-                ('saveEnvVars' in html, 'Save Environment Variables function'),
+                ('saveEnvVars' in html, 'Save Configuration function'),
             ]
             
             all_passed = True
@@ -392,7 +392,7 @@ def test_index_page_has_env_vars_section():
             
             return all_passed
     except Exception as e:
-        print(f"✗ Index page environment variables section test failed: {e}")
+        print(f"✗ Index page configuration section test failed: {e}")
         return False
 
 
@@ -424,6 +424,183 @@ def test_index_page_has_backlog_section():
             return all_passed
     except Exception as e:
         print(f"✗ Index page backlog section test failed: {e}")
+        return False
+
+
+def test_azure_login_route_exists():
+    """Test that Azure login API route exists."""
+    try:
+        from azure_reporter.web_app import app
+        
+        # Get list of registered rules
+        rules = {rule.rule for rule in app.url_map.iter_rules()}
+        
+        found = '/api/azure-login' in rules
+        symbol = "✓" if found else "✗"
+        print(f"  {symbol} Route: /api/azure-login")
+        
+        return found
+    except Exception as e:
+        print(f"✗ Azure login route check failed: {e}")
+        return False
+
+
+def test_service_principal_fields():
+    """Test that Service Principal fields are in the GUI."""
+    try:
+        from azure_reporter.web_app import app
+        
+        with app.test_client() as client:
+            response = client.get('/')
+            assert response.status_code == 200
+            html = response.data.decode('utf-8')
+            
+            checks = [
+                ('azureTenantId' in html, 'Tenant ID input field'),
+                ('azureClientId' in html, 'Client ID input field'),
+                ('azureClientSecret' in html, 'Client Secret input field'),
+                ('Service Principal' in html, 'Service Principal section'),
+            ]
+            
+            all_passed = True
+            for check, name in checks:
+                symbol = "✓" if check else "✗"
+                print(f"  {symbol} {name}")
+                all_passed = all_passed and check
+            
+            return all_passed
+    except Exception as e:
+        print(f"✗ Service Principal fields test failed: {e}")
+        return False
+
+
+def test_config_sections_styling():
+    """Test that configuration sections have proper styling."""
+    try:
+        from azure_reporter.web_app import app
+        
+        with app.test_client() as client:
+            response = client.get('/')
+            assert response.status_code == 200
+            html = response.data.decode('utf-8')
+            
+            checks = [
+                ('config-section' in html, 'Config section CSS class'),
+                ('config-section-header' in html, 'Config section header CSS class'),
+                ('badge-openai' in html, 'OpenAI badge styling'),
+                ('badge-azure' in html, 'Azure badge styling'),
+                ('badge-sp' in html, 'Service Principal badge styling'),
+            ]
+            
+            all_passed = True
+            for check, name in checks:
+                symbol = "✓" if check else "✗"
+                print(f"  {symbol} {name}")
+                all_passed = all_passed and check
+            
+            return all_passed
+    except Exception as e:
+        print(f"✗ Config sections styling test failed: {e}")
+        return False
+
+
+def test_azure_login_button():
+    """Test that Azure login button is present in the GUI."""
+    try:
+        from azure_reporter.web_app import app
+        
+        with app.test_client() as client:
+            response = client.get('/')
+            assert response.status_code == 200
+            html = response.data.decode('utf-8')
+            
+            checks = [
+                ('azureLogin()' in html, 'Azure login function call'),
+                ('Login to Azure' in html, 'Login to Azure button text'),
+                ('azureLoginBtn' in html, 'Azure login button ID'),
+            ]
+            
+            all_passed = True
+            for check, name in checks:
+                symbol = "✓" if check else "✗"
+                print(f"  {symbol} {name}")
+                all_passed = all_passed and check
+            
+            return all_passed
+    except Exception as e:
+        print(f"✗ Azure login button test failed: {e}")
+        return False
+
+
+def test_refresh_subscriptions_button():
+    """Test that Refresh Subscriptions button is present."""
+    try:
+        from azure_reporter.web_app import app
+        
+        with app.test_client() as client:
+            response = client.get('/')
+            assert response.status_code == 200
+            html = response.data.decode('utf-8')
+            
+            checks = [
+                ('refreshSubscriptions()' in html, 'Refresh subscriptions function call'),
+                ('Refresh Subscriptions' in html, 'Refresh Subscriptions button text'),
+            ]
+            
+            all_passed = True
+            for check, name in checks:
+                symbol = "✓" if check else "✗"
+                print(f"  {symbol} {name}")
+                all_passed = all_passed and check
+            
+            return all_passed
+    except Exception as e:
+        print(f"✗ Refresh subscriptions button test failed: {e}")
+        return False
+
+
+def test_service_principal_env_vars_api():
+    """Test that Service Principal fields work in the API."""
+    try:
+        from azure_reporter.web_app import app, current_state
+        
+        with app.test_client() as client:
+            # Test POST endpoint with Service Principal fields
+            response = client.post(
+                '/api/env-vars',
+                json={
+                    'azure_tenant_id': 'test-tenant-id-12345',
+                    'azure_client_id': 'test-client-id-12345',
+                    'azure_client_secret': 'test-secret-12345'
+                },
+                content_type='application/json'
+            )
+            assert response.status_code == 200
+            data = json.loads(response.data)
+            assert data['success']
+            print("✓ POST /api/env-vars accepts Service Principal fields")
+            
+            # Verify values were stored in current_state
+            assert current_state['env_vars'].get('azure_tenant_id') == 'test-tenant-id-12345'
+            assert current_state['env_vars'].get('azure_client_id') == 'test-client-id-12345'
+            assert current_state['env_vars'].get('azure_client_secret') == 'test-secret-12345'
+            print("✓ Service Principal values stored correctly")
+            
+            # Test GET endpoint returns Service Principal fields
+            response = client.get('/api/env-vars')
+            assert response.status_code == 200
+            data = json.loads(response.data)
+            assert 'azure_tenant_id' in data
+            assert 'azure_client_id' in data
+            assert 'azure_client_secret' in data
+            print("✓ GET /api/env-vars returns Service Principal fields")
+            
+            # Clean up
+            current_state['env_vars'] = {}
+            
+            return True
+    except Exception as e:
+        print(f"✗ Service Principal env vars API test failed: {e}")
         return False
 
 
@@ -504,6 +681,36 @@ def run_all_tests():
     print("Test 14: Index Page Backlog Section")
     print("-" * 60)
     results.append(test_index_page_has_backlog_section())
+    print()
+    
+    print("Test 15: Azure Login Route")
+    print("-" * 60)
+    results.append(test_azure_login_route_exists())
+    print()
+    
+    print("Test 16: Service Principal Fields")
+    print("-" * 60)
+    results.append(test_service_principal_fields())
+    print()
+    
+    print("Test 17: Config Sections Styling")
+    print("-" * 60)
+    results.append(test_config_sections_styling())
+    print()
+    
+    print("Test 18: Azure Login Button")
+    print("-" * 60)
+    results.append(test_azure_login_button())
+    print()
+    
+    print("Test 19: Refresh Subscriptions Button")
+    print("-" * 60)
+    results.append(test_refresh_subscriptions_button())
+    print()
+    
+    print("Test 20: Service Principal Env Vars API")
+    print("-" * 60)
+    results.append(test_service_principal_env_vars_api())
     print()
     
     print("="*60)
