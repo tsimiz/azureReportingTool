@@ -27,6 +27,7 @@ def test_module_imports():
         'azure_reporter.modules.azure_fetcher',
         'azure_reporter.modules.ai_analyzer',
         'azure_reporter.modules.powerpoint_generator',
+        'azure_reporter.modules.pdf_generator',
         'azure_reporter.modules.backlog_generator',
         'azure_reporter.utils.config_loader',
         'azure_reporter.utils.logger',
@@ -48,6 +49,7 @@ def test_module_imports():
 def test_class_instantiation():
     """Test that key classes can be instantiated (without credentials)."""
     from azure_reporter.modules.powerpoint_generator import PowerPointGenerator
+    from azure_reporter.modules.pdf_generator import PDFGenerator
     from azure_reporter.modules.backlog_generator import BacklogGenerator
     from azure_reporter.utils.logger import setup_logger
     
@@ -56,6 +58,11 @@ def test_class_instantiation():
         ppt_gen = PowerPointGenerator()
         assert ppt_gen is not None
         print("✓ PowerPointGenerator instantiation")
+        
+        # Test PDF generator
+        pdf_gen = PDFGenerator()
+        assert pdf_gen is not None
+        print("✓ PDFGenerator instantiation")
         
         # Test Backlog generator
         backlog_gen = BacklogGenerator()

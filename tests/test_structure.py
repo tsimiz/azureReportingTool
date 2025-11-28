@@ -37,6 +37,7 @@ def test_project_structure():
         'src/azure_reporter/modules/azure_fetcher.py',
         'src/azure_reporter/modules/ai_analyzer.py',
         'src/azure_reporter/modules/powerpoint_generator.py',
+        'src/azure_reporter/modules/pdf_generator.py',
         'src/azure_reporter/modules/backlog_generator.py',
         'src/azure_reporter/utils/__init__.py',
         'src/azure_reporter/utils/config_loader.py',
@@ -98,6 +99,7 @@ def test_dependencies_defined():
         'azure-mgmt-storage',
         'openai',
         'python-pptx',
+        'fpdf2',
         'python-dotenv',
         'pyyaml',
         'pandas'

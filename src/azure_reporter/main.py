@@ -9,6 +9,7 @@ from typing import Optional
 from azure_reporter.modules.azure_fetcher import AzureFetcher
 from azure_reporter.modules.ai_analyzer import AIAnalyzer
 from azure_reporter.modules.powerpoint_generator import PowerPointGenerator
+from azure_reporter.modules.pdf_generator import PDFGenerator
 from azure_reporter.modules.backlog_generator import BacklogGenerator
 from azure_reporter.utils.config_loader import ConfigLoader
 from azure_reporter.utils.logger import setup_logger
@@ -52,9 +53,14 @@ class AzureReporter:
             self.logger.info("Step 2/5: Analyzing resources with AI...")
             analyses = self._analyze_resources(resources)
             
-            # Step 3: Generate PowerPoint report
-            self.logger.info("Step 3/5: Generating PowerPoint report...")
-            self._generate_powerpoint(resources, analyses)
+            # Step 3: Generate report (PDF or PowerPoint)
+            export_format = self.config['output'].get('export_format', 'pdf').lower()
+            if export_format == 'pptx':
+                self.logger.info("Step 3/5: Generating PowerPoint report...")
+                self._generate_powerpoint(resources, analyses)
+            else:
+                self.logger.info("Step 3/5: Generating PDF report...")
+                self._generate_pdf(resources, analyses)
             
             # Step 4: Generate improvement backlog
             self.logger.info("Step 4/5: Generating improvement backlog...")
@@ -120,13 +126,30 @@ class AzureReporter:
     def _generate_powerpoint(self, resources, analyses):
         """Generate PowerPoint presentation."""
         output_dir = self.config['output']['directory']
-        report_filename = self.config['output']['report_filename']
+        report_filename = self.config['output'].get('report_filename', 'azure_report.pptx')
+        # Ensure the filename has .pptx extension
+        if not report_filename.endswith('.pptx'):
+            report_filename = report_filename.rsplit('.', 1)[0] + '.pptx'
         output_path = os.path.join(output_dir, report_filename)
         
         generator = PowerPointGenerator()
         generator.generate_report(resources, analyses, output_path)
         
         self.logger.info(f"  PowerPoint report saved: {output_path}")
+
+    def _generate_pdf(self, resources, analyses):
+        """Generate PDF report."""
+        output_dir = self.config['output']['directory']
+        report_filename = self.config['output'].get('report_filename', 'azure_report.pdf')
+        # Ensure the filename has .pdf extension
+        if not report_filename.endswith('.pdf'):
+            report_filename = report_filename.rsplit('.', 1)[0] + '.pdf'
+        output_path = os.path.join(output_dir, report_filename)
+        
+        generator = PDFGenerator()
+        generator.generate_report(resources, analyses, output_path)
+        
+        self.logger.info(f"  PDF report saved: {output_path}")
 
     def _generate_backlog(self, analyses):
         """Generate improvement backlog."""
@@ -141,19 +164,31 @@ class AzureReporter:
     def _print_summary(self):
         """Print summary of generated reports."""
         output_dir = self.config['output']['directory']
+        export_format = self.config['output'].get('export_format', 'pdf').lower()
+        report_filename = self.config['output'].get('report_filename', 'azure_report.pdf')
+        
+        # Adjust filename extension based on format
+        if export_format == 'pptx':
+            if not report_filename.endswith('.pptx'):
+                report_filename = report_filename.rsplit('.', 1)[0] + '.pptx'
+            report_type = "PowerPoint"
+        else:
+            if not report_filename.endswith('.pdf'):
+                report_filename = report_filename.rsplit('.', 1)[0] + '.pdf'
+            report_type = "PDF"
         
         self.logger.info("\n" + "="*60)
         self.logger.info("REPORT GENERATION SUMMARY")
         self.logger.info("="*60)
         self.logger.info(f"Output directory: {output_dir}")
         self.logger.info("\nGenerated files:")
-        self.logger.info(f"  1. PowerPoint Report: {self.config['output']['report_filename']}")
+        self.logger.info(f"  1. {report_type} Report: {report_filename}")
         self.logger.info("  2. Improvement Backlog:")
         self.logger.info("     - improvement_backlog.csv")
         self.logger.info("     - improvement_backlog.json")
         self.logger.info("     - improvement_backlog.md")
         self.logger.info("\nNext steps:")
-        self.logger.info("  1. Review the PowerPoint report")
+        self.logger.info(f"  1. Review the {report_type} report")
         self.logger.info("  2. Prioritize items in the improvement backlog")
         self.logger.info("  3. Address critical and high-severity findings first")
         self.logger.info("="*60 + "\n")

@@ -46,7 +46,8 @@ class ConfigLoader:
         return {
             'output': {
                 'directory': './output',
-                'report_filename': 'azure_report.pptx',
+                'report_filename': 'azure_report.pdf',
+                'export_format': 'pdf',
                 'backlog_filename': 'improvement_backlog'
             },
             'resources': {
