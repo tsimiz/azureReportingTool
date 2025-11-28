@@ -42,10 +42,12 @@ setup(
         "python-dotenv>=1.0.0",
         "pyyaml>=6.0.0",
         "pandas>=2.2.0",
+        "flask>=3.0.0",
     ],
     entry_points={
         "console_scripts": [
             "azure-reporter=azure_reporter.main:main",
+            "azure-reporter-gui=azure_reporter.web_app:main",
         ],
     },
 )

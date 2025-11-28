@@ -22,3 +22,6 @@ pyyaml==6.0.1
 
 # Data processing
 pandas==2.2.0
+
+# Web GUI
+flask==3.0.0

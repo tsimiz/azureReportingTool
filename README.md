@@ -183,7 +183,9 @@ Edit `config.yaml` to customize:
 
 ## Usage
 
-### Basic Usage
+### Command Line Interface
+
+#### Basic Usage
 
 ```bash
 python -m azure_reporter.main
@@ -195,17 +197,93 @@ Or if installed as a package:
 azure-reporter
 ```
 
-### With Custom Configuration
+#### With Custom Configuration
 
 ```bash
 python -m azure_reporter.main --config /path/to/config.yaml
 ```
 
-### With Verbose Logging
+#### With Verbose Logging
 
 ```bash
 python -m azure_reporter.main --verbose
 ```
+
+### Web GUI
+
+The tool also provides a modern web-based graphical user interface (GUI) with Azure-inspired design that can be run locally in your web browser.
+
+#### Prerequisites for Web GUI
+
+1. **Azure CLI**: Make sure you have Azure CLI installed and are logged in:
+   ```bash
+   az login
+   ```
+
+2. **Environment Configuration**: Configure your `.env` file with OpenAI/Azure OpenAI credentials for AI analysis (optional but recommended).
+
+#### Starting the Web GUI
+
+```bash
+python -m azure_reporter.web_app
+```
+
+Or if installed as a package:
+
+```bash
+azure-reporter-gui
+```
+
+#### Web GUI Options
+
+```bash
+# Run on a specific port
+python -m azure_reporter.web_app --port 8080
+
+# Run on a specific host (e.g., to allow external access)
+python -m azure_reporter.web_app --host 0.0.0.0
+
+# Enable debug mode
+python -m azure_reporter.web_app --debug
+```
+
+#### Using the Web GUI
+
+1. **Open your browser**: Navigate to `http://127.0.0.1:5000` (or the port you specified)
+
+2. **Check login status**: The header shows your Azure login status. If you see "Not logged in", run `az login` in your terminal.
+
+3. **Select subscription**: Use the dropdown to select which Azure subscription to analyze.
+
+4. **Configure settings**:
+   - **Output Directory**: Where to save generated reports
+   - **Report Filename**: Name for the generated report
+   - **Export Format**: Choose between PDF (recommended) or PowerPoint
+   - **AI Analysis**: Enable/disable AI-powered analysis
+   - **AI Model**: Select GPT-4 or GPT-3.5 Turbo
+   - **Resources**: Select which resource types to analyze
+
+5. **Run Analysis**: Click the "Run Analysis" button to start the analysis. Progress will be shown.
+
+6. **View Results**: After analysis completes:
+   - View summary statistics (total resources, findings by severity)
+   - Browse findings organized by category
+   - See the executive summary
+
+7. **Download Reports**: Use the download buttons to save:
+   - PDF report
+   - PowerPoint presentation
+   - Improvement backlog (CSV)
+
+#### Web GUI Features
+
+- **Modern Azure-inspired design**: Clean, minimalistic interface with Azure color scheme
+- **Real-time login status**: Shows whether you're logged in and to which subscription
+- **Easy subscription switching**: Change subscriptions with a dropdown
+- **Configurable settings**: Adjust all settings through the GUI
+- **Live progress updates**: See analysis progress in real-time
+- **Interactive report preview**: Browse findings before downloading
+- **Multiple export formats**: Download reports in PDF, PPTX, or CSV format
 
 ## Output
 
@@ -223,17 +301,20 @@ azureReportingTool/
 ├── src/
 │   └── azure_reporter/
 │       ├── __init__.py
-│       ├── main.py                    # Main orchestration script
+│       ├── main.py                    # Main CLI orchestration script
+│       ├── web_app.py                 # Web GUI application
 │       ├── modules/
 │       │   ├── __init__.py
 │       │   ├── azure_fetcher.py       # Azure data fetching
 │       │   ├── ai_analyzer.py         # AI-powered analysis
 │       │   ├── powerpoint_generator.py # PPT generation
+│       │   ├── pdf_generator.py       # PDF generation
 │       │   └── backlog_generator.py   # Backlog creation
 │       └── utils/
 │           ├── __init__.py
 │           ├── config_loader.py       # Configuration management
 │           └── logger.py              # Logging utilities
+├── tests/                             # Test files
 ├── output/                            # Generated reports (git-ignored)
 ├── requirements.txt                   # Python dependencies
 ├── setup.py                          # Package installation config
@@ -322,11 +403,12 @@ For issues, questions, or contributions, please open an issue on the GitHub repo
 
 Future enhancements planned:
 - ✅ ~~Support for more Azure resource types~~ (Now analyzes ALL resources in subscription!)
+- ✅ ~~Web-based GUI~~ (Modern, Azure-inspired web interface now available!)
 - Cost analysis and optimization recommendations
 - Compliance checking (PCI DSS, HIPAA, etc.)
 - Historical trending and comparison
 - Azure DevOps integration for backlog import
-- Export to other formats (PDF, Excel)
+- Export to Excel format
 
 ## Acknowledgments
 
