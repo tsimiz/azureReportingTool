@@ -604,6 +604,151 @@ def test_service_principal_env_vars_api():
         return False
 
 
+def test_christmas_theme_toggle_button():
+    """Test that Christmas theme toggle button is present in the GUI."""
+    try:
+        from azure_reporter.web_app import app
+        
+        with app.test_client() as client:
+            response = client.get('/')
+            assert response.status_code == 200
+            html = response.data.decode('utf-8')
+            
+            checks = [
+                ('christmasToggle' in html, 'Christmas toggle button ID'),
+                ('toggleChristmasTheme()' in html, 'Toggle Christmas theme function call'),
+                ('🎄' in html, 'Christmas tree emoji'),
+                ('christmas-toggle' in html, 'Christmas toggle CSS class'),
+            ]
+            
+            all_passed = True
+            for check, name in checks:
+                symbol = "✓" if check else "✗"
+                print(f"  {symbol} {name}")
+                all_passed = all_passed and check
+            
+            return all_passed
+    except Exception as e:
+        print(f"✗ Christmas theme toggle button test failed: {e}")
+        return False
+
+
+def test_christmas_theme_css():
+    """Test that Christmas theme CSS is present."""
+    try:
+        from azure_reporter.web_app import app
+        
+        with app.test_client() as client:
+            response = client.get('/')
+            assert response.status_code == 200
+            html = response.data.decode('utf-8')
+            
+            checks = [
+                ('christmas-theme' in html, 'Christmas theme CSS class'),
+                ('--christmas-red' in html, 'Christmas red color variable'),
+                ('--christmas-green' in html, 'Christmas green color variable'),
+                ('--christmas-gold' in html, 'Christmas gold color variable'),
+                ('snowfall' in html, 'Snowfall animation'),
+                ('snowflake' in html, 'Snowflake CSS class'),
+            ]
+            
+            all_passed = True
+            for check, name in checks:
+                symbol = "✓" if check else "✗"
+                print(f"  {symbol} {name}")
+                all_passed = all_passed and check
+            
+            return all_passed
+    except Exception as e:
+        print(f"✗ Christmas theme CSS test failed: {e}")
+        return False
+
+
+def test_christmas_theme_icicles():
+    """Test that icicles are present in Christmas theme."""
+    try:
+        from azure_reporter.web_app import app
+        
+        with app.test_client() as client:
+            response = client.get('/')
+            assert response.status_code == 200
+            html = response.data.decode('utf-8')
+            
+            # Check for icicle SVG pattern in header::after
+            checks = [
+                ('christmas-theme .header::after' in html, 'Icicles CSS selector'),
+                ('iceGrad' in html, 'Icicle gradient'),
+            ]
+            
+            all_passed = True
+            for check, name in checks:
+                symbol = "✓" if check else "✗"
+                print(f"  {symbol} {name}")
+                all_passed = all_passed and check
+            
+            return all_passed
+    except Exception as e:
+        print(f"✗ Christmas theme icicles test failed: {e}")
+        return False
+
+
+def test_christmas_theme_snowfall_container():
+    """Test that snowfall container is present."""
+    try:
+        from azure_reporter.web_app import app
+        
+        with app.test_client() as client:
+            response = client.get('/')
+            assert response.status_code == 200
+            html = response.data.decode('utf-8')
+            
+            checks = [
+                ('snowfallContainer' in html, 'Snowfall container ID'),
+                ('snowfall-container' in html, 'Snowfall container CSS class'),
+                ('createSnowflakes' in html, 'Create snowflakes function'),
+                ('removeSnowflakes' in html, 'Remove snowflakes function'),
+            ]
+            
+            all_passed = True
+            for check, name in checks:
+                symbol = "✓" if check else "✗"
+                print(f"  {symbol} {name}")
+                all_passed = all_passed and check
+            
+            return all_passed
+    except Exception as e:
+        print(f"✗ Christmas theme snowfall container test failed: {e}")
+        return False
+
+
+def test_christmas_theme_localstorage():
+    """Test that Christmas theme uses localStorage for persistence."""
+    try:
+        from azure_reporter.web_app import app
+        
+        with app.test_client() as client:
+            response = client.get('/')
+            assert response.status_code == 200
+            html = response.data.decode('utf-8')
+            
+            checks = [
+                ("localStorage.setItem('christmasTheme'" in html, 'Save theme to localStorage'),
+                ("localStorage.getItem('christmasTheme')" in html, 'Load theme from localStorage'),
+                ('loadChristmasTheme' in html, 'Load Christmas theme function'),
+            ]
+            
+            all_passed = True
+            for check, name in checks:
+                symbol = "✓" if check else "✗"
+                print(f"  {symbol} {name}")
+                all_passed = all_passed and check
+            
+            return all_passed
+    except Exception as e:
+        print(f"✗ Christmas theme localStorage test failed: {e}")
+        return False
+
+
 def run_all_tests():
     """Run all web app tests."""
     print("="*60)
@@ -711,6 +856,31 @@ def run_all_tests():
     print("Test 20: Service Principal Env Vars API")
     print("-" * 60)
     results.append(test_service_principal_env_vars_api())
+    print()
+    
+    print("Test 21: Christmas Theme Toggle Button")
+    print("-" * 60)
+    results.append(test_christmas_theme_toggle_button())
+    print()
+    
+    print("Test 22: Christmas Theme CSS")
+    print("-" * 60)
+    results.append(test_christmas_theme_css())
+    print()
+    
+    print("Test 23: Christmas Theme Icicles")
+    print("-" * 60)
+    results.append(test_christmas_theme_icicles())
+    print()
+    
+    print("Test 24: Christmas Theme Snowfall Container")
+    print("-" * 60)
+    results.append(test_christmas_theme_snowfall_container())
+    print()
+    
+    print("Test 25: Christmas Theme LocalStorage")
+    print("-" * 60)
+    results.append(test_christmas_theme_localstorage())
     print()
     
     print("="*60)
