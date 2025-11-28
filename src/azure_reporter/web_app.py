@@ -3,10 +3,13 @@
 import os
 import sys
 import json
+import re
 import subprocess
 import logging
 import tempfile
 import shutil
+import time
+import select
 from typing import Optional, Dict, Any, List
 from flask import Flask, render_template_string, request, jsonify, send_file
 
@@ -20,6 +23,9 @@ from azure_reporter.utils.logger import setup_logger
 
 app = Flask(__name__)
 logger = setup_logger('azure_reporter_web', logging.INFO)
+
+# Device code pattern for Azure login
+DEVICE_CODE_PATTERN = re.compile(r'code\s+([A-Z0-9]{9})')
 
 # Store current configuration and state
 current_state = {
@@ -1670,8 +1676,7 @@ def api_azure_login():
         # Check if we got a device code in the output
         if 'devicelogin' in result.stderr.lower() or 'device' in result.stderr.lower():
             # Extract user code from the message
-            import re
-            code_match = re.search(r'code\s+([A-Z0-9]{9})', result.stderr)
+            code_match = DEVICE_CODE_PATTERN.search(result.stderr)
             if code_match:
                 user_code = code_match.group(1)
                 return jsonify({
@@ -1703,9 +1708,6 @@ def api_azure_login():
             )
             
             # Read stderr for the device code message
-            import select
-            import time
-            
             output = ""
             start_time = time.time()
             while time.time() - start_time < 5:
@@ -1718,8 +1720,7 @@ def api_azure_login():
                 time.sleep(0.1)
             
             # Extract user code from output
-            import re
-            code_match = re.search(r'code\s+([A-Z0-9]{9})', output)
+            code_match = DEVICE_CODE_PATTERN.search(output)
             if code_match:
                 user_code = code_match.group(1)
                 return jsonify({
