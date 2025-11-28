@@ -757,9 +757,173 @@ HTML_TEMPLATE = '''
             border-radius: 4px;
             font-size: 14px;
         }
+        
+        /* Christmas Theme Toggle Button */
+        .christmas-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            padding: 4px 8px;
+            margin-left: 12px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            opacity: 0.8;
+        }
+        
+        .christmas-toggle:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        
+        .christmas-toggle.active {
+            animation: tree-glow 1.5s ease-in-out infinite alternate;
+        }
+        
+        @keyframes tree-glow {
+            from { filter: drop-shadow(0 0 2px #ffd700); }
+            to { filter: drop-shadow(0 0 8px #ffd700); }
+        }
+        
+        /* Christmas Theme Styles */
+        body.christmas-theme {
+            --christmas-red: #c41e3a;
+            --christmas-green: #165b33;
+            --christmas-gold: #ffd700;
+            --christmas-dark-green: #0d3820;
+            --christmas-light-red: #ff6b6b;
+            background-color: #f5f0e8;
+        }
+        
+        body.christmas-theme::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(22, 91, 51, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 90% 80%, rgba(196, 30, 58, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(255, 215, 0, 0.02) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        body.christmas-theme .main-container,
+        body.christmas-theme .header,
+        body.christmas-theme .footer {
+            position: relative;
+            z-index: 1;
+        }
+        
+        body.christmas-theme .header {
+            background: linear-gradient(135deg, var(--christmas-red) 0%, var(--christmas-dark-green) 100%);
+            position: relative;
+            overflow: visible;
+        }
+        
+        /* Icicles on header */
+        body.christmas-theme .header::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 0;
+            right: 0;
+            height: 20px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 20'%3E%3Cdefs%3E%3ClinearGradient id='iceGrad' x1='0%25' y1='0%25' x2='0%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23e8f4f8'/%3E%3Cstop offset='100%25' style='stop-color:%23b8d4e3'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0,0 L5,0 L5,8 L2.5,15 L0,8 Z' fill='url(%23iceGrad)'/%3E%3Cpath d='M10,0 L18,0 L18,5 L14,12 L10,5 Z' fill='url(%23iceGrad)'/%3E%3Cpath d='M22,0 L26,0 L26,10 L24,18 L22,10 Z' fill='url(%23iceGrad)'/%3E%3Cpath d='M32,0 L38,0 L38,6 L35,11 L32,6 Z' fill='url(%23iceGrad)'/%3E%3Cpath d='M45,0 L50,0 L50,9 L47.5,16 L45,9 Z' fill='url(%23iceGrad)'/%3E%3Cpath d='M55,0 L60,0 L60,7 L57.5,13 L55,7 Z' fill='url(%23iceGrad)'/%3E%3Cpath d='M65,0 L72,0 L72,5 L68.5,10 L65,5 Z' fill='url(%23iceGrad)'/%3E%3Cpath d='M78,0 L82,0 L82,11 L80,19 L78,11 Z' fill='url(%23iceGrad)'/%3E%3Cpath d='M88,0 L94,0 L94,6 L91,12 L88,6 Z' fill='url(%23iceGrad)'/%3E%3C/svg%3E");
+            background-repeat: repeat-x;
+            background-size: 100px 20px;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        body.christmas-theme .card {
+            border-top: 3px solid var(--christmas-green);
+        }
+        
+        body.christmas-theme .card-header {
+            background: linear-gradient(90deg, rgba(22, 91, 51, 0.05) 0%, rgba(196, 30, 58, 0.05) 100%);
+        }
+        
+        body.christmas-theme .card-header-icon {
+            background: var(--christmas-red);
+        }
+        
+        body.christmas-theme .btn-primary {
+            background: var(--christmas-red);
+        }
+        
+        body.christmas-theme .btn-primary:hover {
+            background: #a01830;
+        }
+        
+        body.christmas-theme .btn-success {
+            background: var(--christmas-green);
+        }
+        
+        body.christmas-theme .btn-success:hover {
+            background: var(--christmas-dark-green);
+        }
+        
+        body.christmas-theme .stat-value {
+            color: var(--christmas-red);
+        }
+        
+        body.christmas-theme .alert-info {
+            border-left-color: var(--christmas-green);
+            background: rgba(22, 91, 51, 0.1);
+        }
+        
+        body.christmas-theme .header-logo {
+            color: var(--christmas-red);
+        }
+        
+        body.christmas-theme .subscription-badge {
+            background: rgba(255, 215, 0, 0.3);
+        }
+        
+        /* Snowfall Animation */
+        .snowfall-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            overflow: hidden;
+            display: none;
+        }
+        
+        body.christmas-theme .snowfall-container {
+            display: block;
+        }
+        
+        .snowflake {
+            position: absolute;
+            top: -10px;
+            color: white;
+            font-size: 1em;
+            text-shadow: 0 0 3px rgba(255, 255, 255, 0.8);
+            animation: snowfall linear infinite;
+            opacity: 0.8;
+        }
+        
+        @keyframes snowfall {
+            0% {
+                transform: translateY(-10px) rotate(0deg);
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Snowfall container for Christmas theme -->
+    <div class="snowfall-container" id="snowfallContainer"></div>
+    
     <header class="header">
         <h1>
             <div class="header-logo">Az</div>
@@ -769,6 +933,7 @@ HTML_TEMPLATE = '''
             <span class="status-indicator" id="statusIndicator"></span>
             <span id="loginStatusText">Checking...</span>
             <span class="subscription-badge" id="subscriptionBadge"></span>
+            <button class="christmas-toggle" id="christmasToggle" onclick="toggleChristmasTheme()" title="Toggle Christmas Theme">🎄</button>
         </div>
     </header>
 
@@ -1106,8 +1271,70 @@ HTML_TEMPLATE = '''
         let analysisResult = null;
         let backlogItems = [];
         
+        // Christmas Theme Functions
+        function toggleChristmasTheme() {
+            const body = document.body;
+            const toggle = document.getElementById('christmasToggle');
+            const isEnabled = body.classList.toggle('christmas-theme');
+            toggle.classList.toggle('active', isEnabled);
+            
+            // Save preference to localStorage
+            localStorage.setItem('christmasTheme', isEnabled ? 'enabled' : 'disabled');
+            
+            // Create or remove snowflakes
+            if (isEnabled) {
+                createSnowflakes();
+            } else {
+                removeSnowflakes();
+            }
+        }
+        
+        function createSnowflakes() {
+            const container = document.getElementById('snowfallContainer');
+            if (!container) return;
+            
+            // Clear existing snowflakes
+            container.innerHTML = '';
+            
+            // Create snowflakes (reduced count for better performance)
+            const snowflakeChars = ['❄', '❅', '❆', '✻', '✼', '❉'];
+            const numSnowflakes = 30;
+            
+            for (let i = 0; i < numSnowflakes; i++) {
+                const snowflake = document.createElement('div');
+                snowflake.className = 'snowflake';
+                snowflake.innerHTML = snowflakeChars[Math.floor(Math.random() * snowflakeChars.length)];
+                snowflake.style.left = Math.random() * 100 + '%';
+                snowflake.style.fontSize = (Math.random() * 10 + 8) + 'px';
+                snowflake.style.animationDuration = (Math.random() * 5 + 5) + 's';
+                snowflake.style.animationDelay = (Math.random() * 10) + 's';
+                snowflake.style.opacity = Math.random() * 0.6 + 0.4;
+                container.appendChild(snowflake);
+            }
+        }
+        
+        function removeSnowflakes() {
+            const container = document.getElementById('snowfallContainer');
+            if (container) {
+                container.innerHTML = '';
+            }
+        }
+        
+        function loadChristmasTheme() {
+            const savedTheme = localStorage.getItem('christmasTheme');
+            const toggleBtn = document.getElementById('christmasToggle');
+            if (savedTheme === 'enabled') {
+                document.body.classList.add('christmas-theme');
+                if (toggleBtn) {
+                    toggleBtn.classList.add('active');
+                }
+                createSnowflakes();
+            }
+        }
+        
         // Check login status on page load
         document.addEventListener('DOMContentLoaded', function() {
+            loadChristmasTheme();
             checkLoginStatus();
             loadSubscriptions();
             loadEnvVars();
