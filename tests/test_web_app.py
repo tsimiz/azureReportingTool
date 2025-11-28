@@ -217,6 +217,37 @@ def test_helper_functions():
         return False
 
 
+def test_ensure_file_extension():
+    """Test the ensure_file_extension helper function."""
+    try:
+        from azure_reporter.web_app import ensure_file_extension
+        
+        # Test adding extension when missing
+        assert ensure_file_extension('report', '.pdf') == 'report.pdf'
+        print("✓ Adds extension when missing")
+        
+        # Test keeping existing correct extension
+        assert ensure_file_extension('report.pdf', '.pdf') == 'report.pdf'
+        print("✓ Keeps existing correct extension")
+        
+        # Test replacing incorrect extension
+        assert ensure_file_extension('report.pptx', '.pdf') == 'report.pdf'
+        print("✓ Replaces incorrect extension")
+        
+        # Test without leading dot in extension
+        assert ensure_file_extension('report', 'pdf') == 'report.pdf'
+        print("✓ Works without leading dot in extension")
+        
+        # Test complex filename
+        assert ensure_file_extension('my.report.name', '.pptx') == 'my.report.pptx'
+        print("✓ Handles complex filenames with dots")
+        
+        return True
+    except Exception as e:
+        print(f"✗ ensure_file_extension test failed: {e}")
+        return False
+
+
 def run_all_tests():
     """Run all web app tests."""
     print("="*60)
@@ -264,6 +295,11 @@ def run_all_tests():
     print("Test 8: Helper Functions")
     print("-" * 60)
     results.append(test_helper_functions())
+    print()
+    
+    print("Test 9: ensure_file_extension Helper")
+    print("-" * 60)
+    results.append(test_ensure_file_extension())
     print()
     
     print("="*60)

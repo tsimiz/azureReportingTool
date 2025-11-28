@@ -30,6 +30,26 @@ current_state = {
 }
 
 
+def ensure_file_extension(filename: str, extension: str) -> str:
+    """Ensure a filename has the specified extension.
+    
+    Args:
+        filename: The filename to check/modify
+        extension: The extension to ensure (e.g., '.pdf', '.pptx')
+        
+    Returns:
+        The filename with the correct extension
+    """
+    if not extension.startswith('.'):
+        extension = '.' + extension
+    if not filename.endswith(extension):
+        if '.' in filename:
+            filename = filename.rsplit('.', 1)[0] + extension
+        else:
+            filename = filename + extension
+    return filename
+
+
 def get_azure_login_status() -> Dict[str, Any]:
     """Check if user is logged in to Azure CLI and get account info."""
     try:
@@ -971,7 +991,9 @@ HTML_TEMPLATE = '''
         function formatCategoryName(name) {
             return name
                 .replace(/_/g, ' ')
-                .replace(/\\b\\w/g, c => c.toUpperCase());
+                .split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
         }
         
         async function downloadReport(format) {
@@ -1104,8 +1126,11 @@ def api_run_analysis():
         fetcher = AzureFetcher(subscription_id=subscription_id)
         resources = fetcher.fetch_all_resources()
         
-        # Calculate statistics
-        total_resources = sum(len(r) for r in resources.values())
+        # Calculate statistics (with type checking)
+        total_resources = sum(
+            len(r) for r in resources.values() 
+            if isinstance(r, (list, dict, set, tuple))
+        )
         
         analyses = {}
         executive_summary = ""
@@ -1156,14 +1181,12 @@ def api_run_analysis():
         report_filename = config['output']['report_filename']
         
         if export_format == 'pdf':
-            if not report_filename.endswith('.pdf'):
-                report_filename = report_filename.rsplit('.', 1)[0] + '.pdf' if '.' in report_filename else report_filename + '.pdf'
+            report_filename = ensure_file_extension(report_filename, '.pdf')
             output_path = os.path.join(output_dir, report_filename)
             generator = PDFGenerator()
             generator.generate_report(resources, analyses, output_path)
         else:
-            if not report_filename.endswith('.pptx'):
-                report_filename = report_filename.rsplit('.', 1)[0] + '.pptx' if '.' in report_filename else report_filename + '.pptx'
+            report_filename = ensure_file_extension(report_filename, '.pptx')
             output_path = os.path.join(output_dir, report_filename)
             generator = PowerPointGenerator()
             generator.generate_report(resources, analyses, output_path)
@@ -1216,9 +1239,7 @@ def api_download(format):
     
     try:
         if format == 'pdf':
-            filename = report['report_filename']
-            if not filename.endswith('.pdf'):
-                filename = filename.rsplit('.', 1)[0] + '.pdf' if '.' in filename else filename + '.pdf'
+            filename = ensure_file_extension(report['report_filename'], '.pdf')
             filepath = os.path.join(output_dir, filename)
             
             # Generate PDF if it doesn't exist
@@ -1234,9 +1255,7 @@ def api_download(format):
             )
             
         elif format == 'pptx':
-            filename = report['report_filename']
-            if not filename.endswith('.pptx'):
-                filename = filename.rsplit('.', 1)[0] + '.pptx' if '.' in filename else filename + '.pptx'
+            filename = ensure_file_extension(report['report_filename'], '.pptx')
             filepath = os.path.join(output_dir, filename)
             
             # Generate PPTX if it doesn't exist
