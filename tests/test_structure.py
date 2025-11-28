@@ -33,6 +33,7 @@ def test_project_structure():
     required_python_files = [
         'src/azure_reporter/__init__.py',
         'src/azure_reporter/main.py',
+        'src/azure_reporter/web_app.py',
         'src/azure_reporter/modules/__init__.py',
         'src/azure_reporter/modules/azure_fetcher.py',
         'src/azure_reporter/modules/ai_analyzer.py',
@@ -102,7 +103,8 @@ def test_dependencies_defined():
         'fpdf2',
         'python-dotenv',
         'pyyaml',
-        'pandas'
+        'pandas',
+        'flask'
     ]
     
     try:

@@ -31,7 +31,8 @@ def test_module_imports():
         'azure_reporter.modules.backlog_generator',
         'azure_reporter.utils.config_loader',
         'azure_reporter.utils.logger',
-        'azure_reporter.main'
+        'azure_reporter.main',
+        'azure_reporter.web_app'
     ]
     
     all_success = True
