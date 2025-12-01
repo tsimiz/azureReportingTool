@@ -15,6 +15,7 @@ from flask import Flask, render_template_string, request, jsonify, send_file
 
 from azure_reporter.modules.azure_fetcher import AzureFetcher
 from azure_reporter.modules.ai_analyzer import AIAnalyzer
+from azure_reporter.modules.tag_analyzer import TagAnalyzer
 from azure_reporter.modules.powerpoint_generator import PowerPointGenerator
 from azure_reporter.modules.pdf_generator import PDFGenerator
 from azure_reporter.modules.backlog_generator import BacklogGenerator
@@ -1147,6 +1148,23 @@ HTML_TEMPLATE = '''
                         </div>
                     </div>
                 </div>
+                
+                <h4 style="margin: 16px 0 12px; font-size: 14px;">Tag Analysis</h4>
+                <div class="alert alert-info" style="margin-bottom: 12px; padding: 10px;">
+                    Tag analysis checks resource tags against required tags. This feature does not use AI.
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="enableTagAnalysis">
+                            <label for="enableTagAnalysis">Enable Tag Analysis</label>
+                        </div>
+                    </div>
+                    <div class="form-group" style="flex: 2;">
+                        <label for="requiredTags">Required Tags (comma-separated)</label>
+                        <input type="text" id="requiredTags" placeholder="Environment, Owner, CostCenter, Project">
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1426,6 +1444,11 @@ HTML_TEMPLATE = '''
         }
         
         function getSettings() {
+            const requiredTagsInput = document.getElementById('requiredTags').value;
+            const requiredTags = requiredTagsInput 
+                ? requiredTagsInput.split(',').map(tag => tag.trim()).filter(tag => tag)
+                : [];
+            
             return {
                 output_dir: document.getElementById('outputDir').value,
                 report_filename: document.getElementById('reportFilename').value,
@@ -1439,6 +1462,10 @@ HTML_TEMPLATE = '''
                     network_security_groups: document.getElementById('analyzeNSGs').checked,
                     virtual_networks: document.getElementById('analyzeVNets').checked,
                     analyze_all_resources: document.getElementById('analyzeAll').checked
+                },
+                tag_analysis: {
+                    enabled: document.getElementById('enableTagAnalysis').checked,
+                    required_tags: requiredTags
                 }
             };
         }
@@ -1490,7 +1517,8 @@ HTML_TEMPLATE = '''
             
             // Display stats
             const stats = result.stats || {};
-            statsGrid.innerHTML = `
+            // Build stats HTML with tag compliance if available
+            let statsHtml = `
                 <div class="stat-card">
                     <div class="stat-value">${stats.total_resources || 0}</div>
                     <div class="stat-label">Total Resources</div>
@@ -1508,6 +1536,20 @@ HTML_TEMPLATE = '''
                     <div class="stat-label">High</div>
                 </div>
             `;
+            
+            // Add tag compliance stat if available
+            if (stats.tag_compliance_rate !== undefined) {
+                const complianceColor = stats.tag_compliance_rate >= 90 ? 'var(--azure-success)' : 
+                                       (stats.tag_compliance_rate >= 70 ? 'var(--azure-warning)' : 'var(--azure-error)');
+                statsHtml += `
+                    <div class="stat-card">
+                        <div class="stat-value" style="color: ${complianceColor};">${stats.tag_compliance_rate}%</div>
+                        <div class="stat-label">Tag Compliance</div>
+                    </div>
+                `;
+            }
+            
+            statsGrid.innerHTML = statsHtml;
             
             // Display findings
             let findingsHtml = '';
@@ -2106,7 +2148,11 @@ def api_run_analysis():
                 'enabled': settings.get('ai_enabled', True),
                 'model': settings.get('ai_model', 'gpt-4'),
                 'temperature': settings.get('ai_temperature', 0.3)
-            }
+            },
+            'tag_analysis': settings.get('tag_analysis', {
+                'enabled': False,
+                'required_tags': []
+            })
         }
         
         # Create output directory
@@ -2185,6 +2231,28 @@ def api_run_analysis():
             else:
                 logger.warning("No OpenAI API key configured")
         
+        # Run tag analysis if enabled
+        tag_config = config.get('tag_analysis', {})
+        if tag_config.get('enabled', False):
+            logger.info("Running tag analysis...")
+            required_tags = tag_config.get('required_tags', [])
+            
+            tag_analyzer = TagAnalyzer(required_tags=required_tags)
+            tag_analysis = tag_analyzer.analyze_resource_tags(resources)
+            analyses['tag_analysis'] = tag_analysis
+            
+            # Count tag findings
+            tag_findings = tag_analysis.get('findings', [])
+            total_findings += len(tag_findings)
+            for finding in tag_findings:
+                severity = finding.get('severity', '').lower()
+                if severity == 'critical':
+                    critical_findings += 1
+                elif severity == 'high':
+                    high_findings += 1
+            
+            logger.info(f"Tag analysis complete. Compliance rate: {tag_analysis.get('summary', {}).get('overall_compliance_rate', 0)}%")
+        
         # Generate report files
         export_format = config['output']['export_format']
         report_filename = config['output']['report_filename']
@@ -2219,15 +2287,24 @@ def api_run_analysis():
         }
         
         logger.info("Analysis complete")
+        # Build stats including tag compliance if available
+        stats = {
+            'total_resources': total_resources,
+            'total_findings': total_findings,
+            'critical_findings': critical_findings,
+            'high_findings': high_findings
+        }
+        
+        # Add tag compliance stats if tag analysis was run
+        if 'tag_analysis' in analyses:
+            tag_summary = analyses['tag_analysis'].get('summary', {})
+            stats['tag_compliance_rate'] = tag_summary.get('overall_compliance_rate', 0)
+            stats['resources_with_tags'] = tag_summary.get('resources_with_tags', 0)
+            stats['resources_without_tags'] = tag_summary.get('resources_without_tags', 0)
         
         return jsonify({
             'success': True,
-            'stats': {
-                'total_resources': total_resources,
-                'total_findings': total_findings,
-                'critical_findings': critical_findings,
-                'high_findings': high_findings
-            },
+            'stats': stats,
             'executive_summary': executive_summary,
             'analyses': analyses,
             'backlog': backlog_items,

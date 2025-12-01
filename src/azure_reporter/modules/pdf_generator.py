@@ -105,6 +105,142 @@ class PDFGenerator:
         
         logger.info("Added resource overview")
 
+    def _add_tag_analysis_section(self, tag_analysis: Dict[str, Any]):
+        """Add tag compliance analysis section."""
+        self.pdf.add_page()
+        
+        # Section title
+        self.pdf.set_font('Helvetica', 'B', 18)
+        self.pdf.set_text_color(0, 51, 102)
+        self.pdf.cell(0, 15, "Tag Compliance Analysis", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        self.pdf.ln(5)
+        
+        summary = tag_analysis.get('summary', {})
+        
+        # Compliance overview
+        compliance_rate = summary.get('overall_compliance_rate', 0)
+        self.pdf.set_font('Helvetica', 'B', 14)
+        
+        if compliance_rate >= 90:
+            self.pdf.set_text_color(0, 128, 0)  # Green
+        elif compliance_rate >= 70:
+            self.pdf.set_text_color(255, 140, 0)  # Orange
+        else:
+            self.pdf.set_text_color(255, 0, 0)  # Red
+        
+        self.pdf.cell(0, 10, f"Overall Tag Compliance: {compliance_rate}%", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        self.pdf.ln(3)
+        
+        # Summary stats
+        self.pdf.set_font('Helvetica', '', 11)
+        self.pdf.set_text_color(0, 0, 0)
+        
+        stats = [
+            f"Total Resources Analyzed: {summary.get('total_resources', 0)}",
+            f"Resources with Tags: {summary.get('resources_with_tags', 0)}",
+            f"Resources without Tags: {summary.get('resources_without_tags', 0)}",
+            f"Unique Tags Found: {summary.get('unique_tags_found', 0)}",
+            f"Required Tags: {summary.get('required_tags_count', 0)}"
+        ]
+        
+        for stat in stats:
+            self.pdf.cell(0, 8, stat, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        
+        self.pdf.ln(5)
+        
+        # Required tags compliance
+        required_tags_compliance = tag_analysis.get('required_tags_compliance', [])
+        if required_tags_compliance:
+            self.pdf.set_font('Helvetica', 'B', 14)
+            self.pdf.set_text_color(0, 51, 102)
+            self.pdf.cell(0, 12, "Required Tags Compliance", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            self.pdf.ln(2)
+            
+            self.pdf.set_font('Helvetica', '', 10)
+            for tag_info in required_tags_compliance:
+                tag_name = tag_info.get('tag_name', 'Unknown')
+                tag_compliance = tag_info.get('compliance_percentage', 0)
+                non_compliant = tag_info.get('non_compliant_resources', 0)
+                
+                if tag_compliance >= 90:
+                    self.pdf.set_text_color(0, 128, 0)
+                elif tag_compliance >= 70:
+                    self.pdf.set_text_color(255, 140, 0)
+                else:
+                    self.pdf.set_text_color(255, 0, 0)
+                
+                self.pdf.cell(0, 7, f"  {tag_name}: {tag_compliance}% compliant ({non_compliant} missing)", 
+                             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            
+            self.pdf.ln(3)
+        
+        # Tag findings
+        findings = tag_analysis.get('findings', [])
+        if findings:
+            self.pdf.set_font('Helvetica', 'B', 14)
+            self.pdf.set_text_color(0, 51, 102)
+            self.pdf.cell(0, 12, "Tag Compliance Findings", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            self.pdf.ln(2)
+            
+            for finding in findings[:MAX_FINDINGS_PER_SECTION]:
+                severity = finding.get('severity', 'medium').upper()
+                issue = finding.get('issue', 'N/A')
+                
+                self.pdf.set_font('Helvetica', 'B', 10)
+                
+                if severity == 'HIGH':
+                    self.pdf.set_text_color(255, 140, 0)
+                elif severity == 'MEDIUM':
+                    self.pdf.set_text_color(200, 150, 0)
+                else:
+                    self.pdf.set_text_color(100, 100, 100)
+                
+                self.pdf.cell(0, 8, f"[{severity}] {issue[:MAX_ISSUE_TEXT_LENGTH]}", 
+                             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                
+                recommendation = finding.get('recommendation', '')
+                if recommendation:
+                    self.pdf.set_font('Helvetica', '', 9)
+                    self.pdf.set_text_color(60, 60, 60)
+                    self.pdf.multi_cell(0, 5, f"  Recommendation: {recommendation[:MAX_RECOMMENDATION_TEXT_LENGTH]}")
+                    self.pdf.ln(2)
+        
+        # Non-compliant resources (show first 10)
+        non_compliant = tag_analysis.get('non_compliant_resources', [])
+        if non_compliant:
+            # Check if we need a new page
+            if self.pdf.get_y() > 200:
+                self.pdf.add_page()
+            
+            self.pdf.set_font('Helvetica', 'B', 14)
+            self.pdf.set_text_color(0, 51, 102)
+            self.pdf.cell(0, 12, f"Non-Compliant Resources (showing {min(10, len(non_compliant))} of {len(non_compliant)})", 
+                         new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            self.pdf.ln(2)
+            
+            self.pdf.set_font('Helvetica', '', 9)
+            self.pdf.set_text_color(0, 0, 0)
+            
+            for resource in non_compliant[:10]:
+                resource_name = resource.get('resource_name', 'Unknown')
+                resource_type = resource.get('resource_type', 'Unknown')
+                missing = resource.get('missing_tags', [])
+                compliance = resource.get('compliance_rate', 0)
+                
+                self.pdf.set_font('Helvetica', 'B', 9)
+                self.pdf.cell(0, 7, f"  {resource_name} ({resource_type})", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                
+                self.pdf.set_font('Helvetica', '', 8)
+                self.pdf.set_text_color(100, 100, 100)
+                missing_str = ', '.join(missing[:5])
+                if len(missing) > 5:
+                    missing_str += f" (+{len(missing) - 5} more)"
+                self.pdf.cell(0, 5, f"    Missing: {missing_str} | Compliance: {compliance}%", 
+                             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                self.pdf.set_text_color(0, 0, 0)
+        
+        logger.info("Added tag analysis section")
+
     def _add_findings_section(self, resource_type: str, analysis: Dict[str, Any]):
         """Add findings section for a specific resource type."""
         if not analysis or 'findings' not in analysis or not analysis['findings']:
@@ -226,6 +362,10 @@ class PDFGenerator:
         
         # Resource overview
         self._add_resource_overview(resources)
+        
+        # Tag analysis section (if available)
+        if 'tag_analysis' in analyses:
+            self._add_tag_analysis_section(analyses['tag_analysis'])
         
         # Add sections for each resource type
         resource_types = [

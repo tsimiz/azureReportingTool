@@ -8,6 +8,7 @@ from typing import Optional
 
 from azure_reporter.modules.azure_fetcher import AzureFetcher
 from azure_reporter.modules.ai_analyzer import AIAnalyzer
+from azure_reporter.modules.tag_analyzer import TagAnalyzer
 from azure_reporter.modules.powerpoint_generator import PowerPointGenerator
 from azure_reporter.modules.pdf_generator import PDFGenerator
 from azure_reporter.modules.backlog_generator import BacklogGenerator
@@ -42,7 +43,7 @@ class AzureReporter:
         """Execute the full reporting workflow."""
         try:
             # Step 1: Fetch Azure resources
-            self.logger.info("Step 1/5: Fetching Azure resources...")
+            self.logger.info("Step 1/6: Fetching Azure resources...")
             resources = self._fetch_azure_resources()
             
             if not resources:
@@ -50,24 +51,30 @@ class AzureReporter:
                 return
             
             # Step 2: Analyze with AI (if enabled)
-            self.logger.info("Step 2/5: Analyzing resources with AI...")
+            self.logger.info("Step 2/6: Analyzing resources with AI...")
             analyses = self._analyze_resources(resources)
             
-            # Step 3: Generate report (PDF or PowerPoint)
+            # Step 3: Analyze tags (if enabled)
+            self.logger.info("Step 3/6: Analyzing resource tags...")
+            tag_analysis = self._analyze_tags(resources)
+            if tag_analysis:
+                analyses['tag_analysis'] = tag_analysis
+            
+            # Step 4: Generate report (PDF or PowerPoint)
             export_format = self.config['output'].get('export_format', 'pdf').lower()
             if export_format == 'pptx':
-                self.logger.info("Step 3/5: Generating PowerPoint report...")
+                self.logger.info("Step 4/6: Generating PowerPoint report...")
                 self._generate_powerpoint(resources, analyses)
             else:
-                self.logger.info("Step 3/5: Generating PDF report...")
+                self.logger.info("Step 4/6: Generating PDF report...")
                 self._generate_pdf(resources, analyses)
             
-            # Step 4: Generate improvement backlog
-            self.logger.info("Step 4/5: Generating improvement backlog...")
+            # Step 5: Generate improvement backlog
+            self.logger.info("Step 5/6: Generating improvement backlog...")
             self._generate_backlog(analyses)
             
-            # Step 5: Summary
-            self.logger.info("Step 5/5: Report generation complete!")
+            # Step 6: Summary
+            self.logger.info("Step 6/6: Report generation complete!")
             self._print_summary()
             
         except Exception as e:
@@ -122,6 +129,34 @@ class AzureReporter:
                 self.logger.info(f"  - {resource_type}: {findings_count} findings")
         
         return analyses
+
+    def _analyze_tags(self, resources):
+        """Analyze resource tags for compliance.
+        
+        Returns:
+            Tag analysis results or None if tag analysis is disabled.
+        """
+        tag_config = self.config.get('tag_analysis', {})
+        
+        if not tag_config.get('enabled', False):
+            self.logger.info("Tag analysis disabled in configuration")
+            return None
+        
+        required_tags = tag_config.get('required_tags', [])
+        
+        analyzer = TagAnalyzer(required_tags=required_tags)
+        tag_analysis = analyzer.analyze_resource_tags(resources)
+        
+        # Log tag analysis results
+        summary = tag_analysis.get('summary', {})
+        self.logger.info(f"  - Total resources analyzed: {summary.get('total_resources', 0)}")
+        self.logger.info(f"  - Resources with tags: {summary.get('resources_with_tags', 0)}")
+        self.logger.info(f"  - Tag compliance rate: {summary.get('overall_compliance_rate', 0)}%")
+        
+        if tag_analysis.get('findings'):
+            self.logger.info(f"  - Tag findings: {len(tag_analysis['findings'])}")
+        
+        return tag_analysis
 
     def _generate_powerpoint(self, resources, analyses):
         """Generate PowerPoint presentation."""

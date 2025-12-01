@@ -19,9 +19,17 @@ A comprehensive tool to automatically generate reports and analysis of Azure env
   - Operational Excellence
   - Reliability
 
+- **Tag Compliance Analysis**: Analyze resource tags against required tags (no AI required):
+  - Define required tags that should be present on all resources
+  - Get compliance percentage for each required tag
+  - Identify which resources are missing required tags
+  - Generate findings for tag compliance issues
+  - Can be enabled independently of AI analysis
+
 - **PowerPoint Report Generation**: Creates a professional PowerPoint presentation with:
   - Executive Summary
   - Resource Overview
+  - Tag Compliance Analysis (when enabled)
   - Detailed Findings by Resource Type
   - Recommendations for Improvement
   - Best Practices Already Met
@@ -178,8 +186,32 @@ cp config.example.yaml config.yaml
 Edit `config.yaml` to customize:
 - Output directory and filenames
 - Resources to analyze
-- AI analysis settings
+- AI analysis settings (can be disabled)
+- Tag analysis settings (can be enabled independently of AI)
 - Report content preferences
+
+### Tag Analysis Configuration
+
+Tag analysis allows you to check if your Azure resources have required tags. This feature does not require AI and can be enabled independently. Add the following to your `config.yaml`:
+
+```yaml
+# Tag analysis settings
+tag_analysis:
+  enabled: true
+  required_tags:
+    - Environment
+    - Owner
+    - CostCenter
+    - Project
+```
+
+When enabled, the tag analysis will:
+- Report which resources are missing required tags
+- Calculate compliance percentage for each required tag
+- Generate findings for resources with missing tags
+- Add tag compliance items to the improvement backlog
+
+**Note:** You can disable AI analysis (`ai_analysis.enabled: false`) and still use tag analysis, or use both together.
 
 ## Usage
 
