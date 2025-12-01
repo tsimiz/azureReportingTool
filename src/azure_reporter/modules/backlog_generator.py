@@ -107,6 +107,28 @@ class BacklogGenerator:
                     self.backlog_items.append(backlog_item)
                     item_id += 1
         
+        # Extract backlog items from cost analysis
+        if 'cost_analysis' in analyses:
+            cost_analysis = analyses['cost_analysis']
+            if 'findings' in cost_analysis:
+                for finding in cost_analysis['findings']:
+                    backlog_item = {
+                        'id': f"ITEM-{item_id:04d}",
+                        'resource_type': finding.get('resource_type', 'Cost Optimization'),
+                        'resource_name': finding.get('resource', 'N/A'),
+                        'category': 'Cost',
+                        'severity': finding.get('severity', 'medium').upper(),
+                        'issue': finding.get('issue', 'N/A'),
+                        'recommendation': finding.get('recommendation', 'N/A'),
+                        'status': 'Open',
+                        'priority': self._calculate_priority(finding.get('severity', 'medium')),
+                        'estimated_effort': self._estimate_effort(finding),
+                        'created_date': datetime.now().strftime('%Y-%m-%d')
+                    }
+                    
+                    self.backlog_items.append(backlog_item)
+                    item_id += 1
+        
         # Sort by priority (1 is highest)
         self.backlog_items.sort(key=lambda x: x['priority'])
         

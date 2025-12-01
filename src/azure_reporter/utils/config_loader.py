@@ -66,10 +66,14 @@ class ConfigLoader:
                 'enabled': False,
                 'required_tags': []
             },
+            'cost_analysis': {
+                'enabled': True
+            },
             'report': {
                 'include_executive_summary': True,
                 'include_detailed_findings': True,
-                'include_security_analysis': True
+                'include_security_analysis': True,
+                'include_cost_analysis': True
             }
         }
 

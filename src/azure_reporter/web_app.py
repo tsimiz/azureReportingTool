@@ -16,6 +16,7 @@ from flask import Flask, render_template_string, request, jsonify, send_file
 from azure_reporter.modules.azure_fetcher import AzureFetcher
 from azure_reporter.modules.ai_analyzer import AIAnalyzer
 from azure_reporter.modules.tag_analyzer import TagAnalyzer
+from azure_reporter.modules.cost_analyzer import CostAnalyzer
 from azure_reporter.modules.powerpoint_generator import PowerPointGenerator
 from azure_reporter.modules.pdf_generator import PDFGenerator
 from azure_reporter.modules.backlog_generator import BacklogGenerator
@@ -2253,6 +2254,27 @@ def api_run_analysis():
             
             logger.info(f"Tag analysis complete. Compliance rate: {tag_analysis.get('summary', {}).get('overall_compliance_rate', 0)}%")
         
+        # Run cost analysis (enabled by default)
+        cost_config = config.get('cost_analysis', {'enabled': True})
+        if cost_config.get('enabled', True):
+            logger.info("Running cost analysis...")
+            
+            cost_analyzer = CostAnalyzer()
+            cost_analysis = cost_analyzer.analyze_costs(resources)
+            analyses['cost_analysis'] = cost_analysis
+            
+            # Count cost findings
+            cost_findings = cost_analysis.get('findings', [])
+            total_findings += len(cost_findings)
+            for finding in cost_findings:
+                severity = finding.get('severity', '').lower()
+                if severity == 'critical':
+                    critical_findings += 1
+                elif severity == 'high':
+                    high_findings += 1
+            
+            logger.info(f"Cost analysis complete. Found {len(cost_findings)} optimization opportunities.")
+        
         # Generate report files
         export_format = config['output']['export_format']
         report_filename = config['output']['report_filename']
@@ -2301,6 +2323,13 @@ def api_run_analysis():
             stats['tag_compliance_rate'] = tag_summary.get('overall_compliance_rate', 0)
             stats['resources_with_tags'] = tag_summary.get('resources_with_tags', 0)
             stats['resources_without_tags'] = tag_summary.get('resources_without_tags', 0)
+        
+        # Add cost analysis stats if cost analysis was run
+        if 'cost_analysis' in analyses:
+            cost_summary = analyses['cost_analysis'].get('summary', {})
+            opportunities = analyses['cost_analysis'].get('optimization_opportunities', {})
+            stats['cost_optimization_opportunities'] = cost_summary.get('total_findings', 0)
+            stats['immediate_actions_needed'] = opportunities.get('immediate_actions', 0)
         
         return jsonify({
             'success': True,

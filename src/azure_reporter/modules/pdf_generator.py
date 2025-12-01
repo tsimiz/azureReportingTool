@@ -241,6 +241,126 @@ class PDFGenerator:
         
         logger.info("Added tag analysis section")
 
+    def _add_cost_analysis_section(self, cost_analysis: Dict[str, Any]):
+        """Add cost analysis and optimization recommendations section."""
+        self.pdf.add_page()
+        
+        # Section title
+        self.pdf.set_font('Helvetica', 'B', 18)
+        self.pdf.set_text_color(0, 51, 102)
+        self.pdf.cell(0, 15, "Cost Analysis & Optimization", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        self.pdf.ln(5)
+        
+        summary = cost_analysis.get('summary', {})
+        opportunities = cost_analysis.get('optimization_opportunities', {})
+        
+        # Cost optimization summary
+        total_findings = summary.get('total_findings', 0)
+        self.pdf.set_font('Helvetica', 'B', 14)
+        
+        if total_findings == 0:
+            self.pdf.set_text_color(0, 128, 0)  # Green
+            self.pdf.cell(0, 10, "No immediate cost optimization opportunities identified", 
+                         new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        else:
+            self.pdf.set_text_color(255, 140, 0)  # Orange
+            self.pdf.cell(0, 10, f"Found {total_findings} cost optimization opportunities", 
+                         new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        self.pdf.ln(3)
+        
+        # Summary stats
+        self.pdf.set_font('Helvetica', '', 11)
+        self.pdf.set_text_color(0, 0, 0)
+        
+        stats = [
+            f"Resources Analyzed: {summary.get('total_resources_analyzed', 0)}",
+            f"Immediate Actions Needed: {opportunities.get('immediate_actions', 0)}",
+            f"Reviews Recommended: {opportunities.get('review_needed', 0)}",
+            f"Best Practice Suggestions: {opportunities.get('best_practices', 0)}"
+        ]
+        
+        for stat in stats:
+            self.pdf.cell(0, 8, stat, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        
+        self.pdf.ln(5)
+        
+        # Optimization recommendations
+        recommendations = cost_analysis.get('recommendations', [])
+        if recommendations:
+            self.pdf.set_font('Helvetica', 'B', 14)
+            self.pdf.set_text_color(0, 51, 102)
+            self.pdf.cell(0, 12, "Top Optimization Recommendations", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            self.pdf.ln(2)
+            
+            for i, rec in enumerate(recommendations[:5]):  # Top 5 recommendations
+                self.pdf.set_font('Helvetica', 'B', 11)
+                priority = rec.get('priority', 99)
+                affected = rec.get('affected_resources', 0)
+                
+                if priority <= 2:
+                    self.pdf.set_text_color(255, 0, 0)  # Red for high priority
+                elif priority <= 4:
+                    self.pdf.set_text_color(255, 140, 0)  # Orange
+                else:
+                    self.pdf.set_text_color(0, 100, 0)  # Green
+                
+                self.pdf.cell(0, 8, f"{i+1}. {rec.get('summary', 'N/A')[:70]}", 
+                             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                
+                self.pdf.set_font('Helvetica', '', 10)
+                self.pdf.set_text_color(60, 60, 60)
+                action = rec.get('action', '')[:100]
+                self.pdf.multi_cell(0, 5, f"   Action: {action}")
+                
+                impact = rec.get('potential_impact', '')
+                if impact:
+                    self.pdf.cell(0, 5, f"   Potential Savings: {impact[:60]}", 
+                                 new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                
+                self.pdf.cell(0, 5, f"   Affected Resources: {affected}", 
+                             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                self.pdf.ln(3)
+        
+        # Cost findings by severity
+        findings = cost_analysis.get('findings', [])
+        if findings:
+            # Check if we need a new page
+            if self.pdf.get_y() > 200:
+                self.pdf.add_page()
+            
+            self.pdf.set_font('Helvetica', 'B', 14)
+            self.pdf.set_text_color(0, 51, 102)
+            self.pdf.cell(0, 12, f"Cost Findings (showing {min(10, len(findings))} of {len(findings)})", 
+                         new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            self.pdf.ln(2)
+            
+            for finding in findings[:MAX_FINDINGS_PER_SECTION]:
+                severity = finding.get('severity', 'low').upper()
+                issue = finding.get('issue', 'N/A')
+                resource = finding.get('resource', 'Unknown')
+                
+                self.pdf.set_font('Helvetica', 'B', 10)
+                
+                if severity == 'HIGH':
+                    self.pdf.set_text_color(255, 0, 0)
+                elif severity == 'MEDIUM':
+                    self.pdf.set_text_color(255, 140, 0)
+                else:
+                    self.pdf.set_text_color(100, 100, 100)
+                
+                self.pdf.cell(0, 7, f"[{severity}] {resource}: {issue[:60]}", 
+                             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                
+                recommendation = finding.get('recommendation', '')
+                if recommendation:
+                    self.pdf.set_font('Helvetica', '', 9)
+                    self.pdf.set_text_color(60, 60, 60)
+                    self.pdf.multi_cell(0, 5, f"  -> {recommendation[:100]}")
+                
+                self.pdf.ln(2)
+        
+        logger.info("Added cost analysis section")
+
     def _add_findings_section(self, resource_type: str, analysis: Dict[str, Any]):
         """Add findings section for a specific resource type."""
         if not analysis or 'findings' not in analysis or not analysis['findings']:
@@ -366,6 +486,10 @@ class PDFGenerator:
         # Tag analysis section (if available)
         if 'tag_analysis' in analyses:
             self._add_tag_analysis_section(analyses['tag_analysis'])
+        
+        # Cost analysis section (if available)
+        if 'cost_analysis' in analyses:
+            self._add_cost_analysis_section(analyses['cost_analysis'])
         
         # Add sections for each resource type
         resource_types = [

@@ -40,11 +40,17 @@ tag_analysis:
     - CostCenter
     - Project
 
+# Cost analysis settings
+# Analyzes resources for cost optimization opportunities
+# This feature does not use AI and is enabled by default
+cost_analysis:
+  enabled: true
+
 # Report settings
 report:
   include_executive_summary: true
   include_detailed_findings: true
-  include_cost_analysis: false
+  include_cost_analysis: true
   include_security_analysis: true
   include_compliance_check: true
 
