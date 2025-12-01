@@ -205,6 +205,123 @@ class PowerPointGenerator:
         
         logger.info(f"Added best practices slide for {resource_type}")
 
+    def add_cost_analysis_slide(self, cost_analysis: Dict[str, Any]):
+        """Add cost analysis and optimization recommendations slide."""
+        if not cost_analysis:
+            return
+        
+        slide_layout = self.prs.slide_layouts[1]
+        slide = self.prs.slides.add_slide(slide_layout)
+        
+        title = slide.shapes.title
+        title.text = "Cost Analysis & Optimization"
+        
+        content = slide.placeholders[1]
+        text_frame = content.text_frame
+        text_frame.clear()
+        
+        summary = cost_analysis.get('summary', {})
+        opportunities = cost_analysis.get('optimization_opportunities', {})
+        
+        # Summary
+        p = text_frame.paragraphs[0]
+        total_findings = summary.get('total_findings', 0)
+        p.text = f"Cost Optimization Opportunities: {total_findings}"
+        p.font.size = Pt(16)
+        p.font.bold = True
+        if total_findings > 0:
+            p.font.color.rgb = RGBColor(255, 140, 0)  # Orange
+        else:
+            p.font.color.rgb = RGBColor(0, 128, 0)  # Green
+        
+        # Opportunity breakdown
+        p = text_frame.add_paragraph()
+        p.text = f"  • Immediate Actions: {opportunities.get('immediate_actions', 0)}"
+        p.font.size = Pt(12)
+        p.level = 1
+        
+        p = text_frame.add_paragraph()
+        p.text = f"  • Reviews Needed: {opportunities.get('review_needed', 0)}"
+        p.font.size = Pt(12)
+        p.level = 1
+        
+        p = text_frame.add_paragraph()
+        p.text = f"  • Best Practice Suggestions: {opportunities.get('best_practices', 0)}"
+        p.font.size = Pt(12)
+        p.level = 1
+        
+        # Top recommendations
+        recommendations = cost_analysis.get('recommendations', [])
+        if recommendations:
+            p = text_frame.add_paragraph()
+            p.text = ""  # Empty line
+            
+            p = text_frame.add_paragraph()
+            p.text = "Top Recommendations:"
+            p.font.size = Pt(14)
+            p.font.bold = True
+            
+            for rec in recommendations[:3]:  # Top 3 recommendations
+                p = text_frame.add_paragraph()
+                priority = rec.get('priority', 99)
+                summary_text = rec.get('summary', 'N/A')[:50]
+                p.text = f"  {priority}. {summary_text}"
+                p.font.size = Pt(11)
+                p.level = 1
+                
+                if priority <= 2:
+                    p.font.color.rgb = RGBColor(255, 0, 0)  # Red
+                elif priority <= 4:
+                    p.font.color.rgb = RGBColor(255, 140, 0)  # Orange
+        
+        logger.info("Added cost analysis slide")
+
+    def add_cost_recommendations_slide(self, cost_analysis: Dict[str, Any]):
+        """Add detailed cost recommendations slide."""
+        recommendations = cost_analysis.get('recommendations', [])
+        if not recommendations:
+            return
+        
+        slide_layout = self.prs.slide_layouts[1]
+        slide = self.prs.slides.add_slide(slide_layout)
+        
+        title = slide.shapes.title
+        title.text = "Cost Optimization Recommendations"
+        
+        content = slide.placeholders[1]
+        text_frame = content.text_frame
+        text_frame.clear()
+        
+        for i, rec in enumerate(recommendations[:5]):  # Top 5 recommendations
+            if i > 0:
+                p = text_frame.add_paragraph()
+            else:
+                p = text_frame.paragraphs[0]
+            
+            action = rec.get('action', 'N/A')[:70]
+            affected = rec.get('affected_resources', 0)
+            impact = rec.get('potential_impact', '')[:40]
+            
+            p.text = f"{rec.get('summary', 'N/A')[:60]}"
+            p.font.size = Pt(12)
+            p.font.bold = True
+            p.level = 0
+            
+            # Add action
+            p = text_frame.add_paragraph()
+            p.text = f"Action: {action}"
+            p.font.size = Pt(10)
+            p.level = 1
+            
+            # Add impact and affected count
+            p = text_frame.add_paragraph()
+            p.text = f"Affected: {affected} resources | Impact: {impact}"
+            p.font.size = Pt(10)
+            p.font.color.rgb = RGBColor(100, 100, 100)
+            p.level = 1
+        
+        logger.info("Added cost recommendations slide")
+
     def add_summary_slide(self):
         """Add final summary slide."""
         slide_layout = self.prs.slide_layouts[1]
@@ -251,6 +368,11 @@ class PowerPointGenerator:
         
         # Resource overview
         self.add_resource_overview_slide(resources)
+        
+        # Cost analysis (if available)
+        if 'cost_analysis' in analyses:
+            self.add_cost_analysis_slide(analyses['cost_analysis'])
+            self.add_cost_recommendations_slide(analyses['cost_analysis'])
         
         # Add slides for each resource type
         resource_types = [

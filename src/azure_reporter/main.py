@@ -9,6 +9,7 @@ from typing import Optional
 from azure_reporter.modules.azure_fetcher import AzureFetcher
 from azure_reporter.modules.ai_analyzer import AIAnalyzer
 from azure_reporter.modules.tag_analyzer import TagAnalyzer
+from azure_reporter.modules.cost_analyzer import CostAnalyzer
 from azure_reporter.modules.powerpoint_generator import PowerPointGenerator
 from azure_reporter.modules.pdf_generator import PDFGenerator
 from azure_reporter.modules.backlog_generator import BacklogGenerator
@@ -43,7 +44,7 @@ class AzureReporter:
         """Execute the full reporting workflow."""
         try:
             # Step 1: Fetch Azure resources
-            self.logger.info("Step 1/6: Fetching Azure resources...")
+            self.logger.info("Step 1/7: Fetching Azure resources...")
             resources = self._fetch_azure_resources()
             
             if not resources:
@@ -51,30 +52,36 @@ class AzureReporter:
                 return
             
             # Step 2: Analyze with AI (if enabled)
-            self.logger.info("Step 2/6: Analyzing resources with AI...")
+            self.logger.info("Step 2/7: Analyzing resources with AI...")
             analyses = self._analyze_resources(resources)
             
             # Step 3: Analyze tags (if enabled)
-            self.logger.info("Step 3/6: Analyzing resource tags...")
+            self.logger.info("Step 3/7: Analyzing resource tags...")
             tag_analysis = self._analyze_tags(resources)
             if tag_analysis:
                 analyses['tag_analysis'] = tag_analysis
             
-            # Step 4: Generate report (PDF or PowerPoint)
+            # Step 4: Analyze costs (if enabled)
+            self.logger.info("Step 4/7: Analyzing costs and optimization opportunities...")
+            cost_analysis = self._analyze_costs(resources)
+            if cost_analysis:
+                analyses['cost_analysis'] = cost_analysis
+            
+            # Step 5: Generate report (PDF or PowerPoint)
             export_format = self.config['output'].get('export_format', 'pdf').lower()
             if export_format == 'pptx':
-                self.logger.info("Step 4/6: Generating PowerPoint report...")
+                self.logger.info("Step 5/7: Generating PowerPoint report...")
                 self._generate_powerpoint(resources, analyses)
             else:
-                self.logger.info("Step 4/6: Generating PDF report...")
+                self.logger.info("Step 5/7: Generating PDF report...")
                 self._generate_pdf(resources, analyses)
             
-            # Step 5: Generate improvement backlog
-            self.logger.info("Step 5/6: Generating improvement backlog...")
+            # Step 6: Generate improvement backlog
+            self.logger.info("Step 6/7: Generating improvement backlog...")
             self._generate_backlog(analyses)
             
-            # Step 6: Summary
-            self.logger.info("Step 6/6: Report generation complete!")
+            # Step 7: Summary
+            self.logger.info("Step 7/7: Report generation complete!")
             self._print_summary()
             
         except Exception as e:
@@ -157,6 +164,33 @@ class AzureReporter:
             self.logger.info(f"  - Tag findings: {len(tag_analysis['findings'])}")
         
         return tag_analysis
+
+    def _analyze_costs(self, resources):
+        """Analyze costs and generate optimization recommendations.
+        
+        Returns:
+            Cost analysis results or None if cost analysis is disabled.
+        """
+        cost_config = self.config.get('cost_analysis', {})
+        
+        if not cost_config.get('enabled', True):
+            self.logger.info("Cost analysis disabled in configuration")
+            return None
+        
+        analyzer = CostAnalyzer()
+        cost_analysis = analyzer.analyze_costs(resources)
+        
+        # Log cost analysis results
+        summary = cost_analysis.get('summary', {})
+        self.logger.info(f"  - Total resources analyzed: {summary.get('total_resources_analyzed', 0)}")
+        self.logger.info(f"  - Cost optimization opportunities: {summary.get('total_findings', 0)}")
+        
+        opportunities = cost_analysis.get('optimization_opportunities', {})
+        if opportunities:
+            self.logger.info(f"  - Immediate actions needed: {opportunities.get('immediate_actions', 0)}")
+            self.logger.info(f"  - Reviews recommended: {opportunities.get('review_needed', 0)}")
+        
+        return cost_analysis
 
     def _generate_powerpoint(self, resources, analyses):
         """Generate PowerPoint presentation."""

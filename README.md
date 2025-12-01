@@ -19,6 +19,18 @@ A comprehensive tool to automatically generate reports and analysis of Azure env
   - Operational Excellence
   - Reliability
 
+- **Cost Analysis & Optimization Recommendations**: Analyzes resources for cost optimization opportunities (no AI required):
+  - Identifies stopped VMs still incurring compute charges
+  - Detects deallocated VMs with ongoing storage costs
+  - Reviews GPU and memory-optimized VM usage
+  - Analyzes premium and geo-redundant storage configurations
+  - Identifies potentially orphaned resources (unattached disks, unused public IPs)
+  - Recommends Reserved Instances for running VMs
+  - Flags resources missing cost allocation tags
+  - Detects consolidation opportunities for similar resources
+  - Generates prioritized cost optimization recommendations
+  - Enabled by default
+
 - **Tag Compliance Analysis**: Analyze resource tags against required tags (no AI required):
   - Define required tags that should be present on all resources
   - Get compliance percentage for each required tag
@@ -29,6 +41,7 @@ A comprehensive tool to automatically generate reports and analysis of Azure env
 - **PowerPoint Report Generation**: Creates a professional PowerPoint presentation with:
   - Executive Summary
   - Resource Overview
+  - Cost Analysis & Optimization Recommendations
   - Tag Compliance Analysis (when enabled)
   - Detailed Findings by Resource Type
   - Recommendations for Improvement
@@ -188,7 +201,32 @@ Edit `config.yaml` to customize:
 - Resources to analyze
 - AI analysis settings (can be disabled)
 - Tag analysis settings (can be enabled independently of AI)
+- Cost analysis settings
 - Report content preferences
+
+### Cost Analysis Configuration
+
+Cost analysis identifies cost optimization opportunities in your Azure environment. This feature does not require AI and is **enabled by default**. It can be configured in your `config.yaml`:
+
+```yaml
+# Cost analysis settings
+cost_analysis:
+  enabled: true
+```
+
+When enabled, the cost analysis will:
+- Identify stopped VMs still incurring compute charges
+- Detect deallocated VMs with ongoing storage costs
+- Review GPU and memory-optimized VM usage for right-sizing opportunities
+- Analyze premium and geo-redundant storage configurations
+- Identify potentially orphaned resources (unattached disks, unused public IPs)
+- Recommend Azure Reserved Instances for running VMs
+- Flag resources missing cost allocation tags
+- Detect consolidation opportunities for similar resources
+- Generate prioritized cost optimization recommendations
+- Add cost optimization items to the improvement backlog
+
+**Note:** You can disable cost analysis (`cost_analysis.enabled: false`) if you prefer to focus only on other analysis types.
 
 ### Tag Analysis Configuration
 
@@ -436,7 +474,7 @@ For issues, questions, or contributions, please open an issue on the GitHub repo
 Future enhancements planned:
 - ✅ ~~Support for more Azure resource types~~ (Now analyzes ALL resources in subscription!)
 - ✅ ~~Web-based GUI~~ (Modern, Azure-inspired web interface now available!)
-- Cost analysis and optimization recommendations
+- ✅ ~~Cost analysis and optimization recommendations~~ (Comprehensive cost analysis with prioritized recommendations!)
 - Compliance checking (PCI DSS, HIPAA, etc.)
 - Historical trending and comparison
 - Azure DevOps integration for backlog import
