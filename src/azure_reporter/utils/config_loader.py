@@ -62,6 +62,10 @@ class ConfigLoader:
                 'model': 'gpt-4',
                 'temperature': 0.3
             },
+            'tag_analysis': {
+                'enabled': False,
+                'required_tags': []
+            },
             'report': {
                 'include_executive_summary': True,
                 'include_detailed_findings': True,

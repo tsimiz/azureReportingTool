@@ -28,6 +28,18 @@ ai_analysis:
   temperature: 0.3
   include_recommendations: true
 
+# Tag analysis settings
+# Analyzes resource tags and checks compliance against required tags
+# This feature does not use AI and can be enabled independently
+tag_analysis:
+  enabled: false
+  # List of tag names that should be present on all resources
+  required_tags:
+    - Environment
+    - Owner
+    - CostCenter
+    - Project
+
 # Report settings
 report:
   include_executive_summary: true
