@@ -45,10 +45,9 @@ class TestCostAnalyzer(unittest.TestCase):
         
         result = analyzer.analyze_costs(resources)
         
-        # Should find the stopped VM issue
+        # Should find the stopped VM issue (stopped but not deallocated)
         findings = result.get('findings', [])
-        stopped_vm_findings = [f for f in findings if 'stopped' in f.get('issue', '').lower() 
-                              and 'deallocated' in f.get('issue', '').lower()]
+        stopped_vm_findings = [f for f in findings if f.get('optimization_type') == 'stopped_vm']
         self.assertGreater(len(stopped_vm_findings), 0)
         self.assertEqual(stopped_vm_findings[0]['severity'], 'high')
 
@@ -218,9 +217,8 @@ class TestCostAnalyzer(unittest.TestCase):
         result = analyzer.analyze_costs(resources)
         
         findings = result.get('findings', [])
-        # Check for public IP findings (case insensitive)
-        ip_findings = [f for f in findings if 'public ip' in f.get('issue', '').lower() 
-                       or 'orphaned_ip' in f.get('optimization_type', '')]
+        # Check for public IP findings by optimization type
+        ip_findings = [f for f in findings if f.get('optimization_type') == 'orphaned_ip_review']
         self.assertGreater(len(ip_findings), 0)
 
     def test_summary_generation(self):

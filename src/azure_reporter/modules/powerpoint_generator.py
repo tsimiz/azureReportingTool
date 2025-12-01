@@ -261,11 +261,13 @@ class PowerPointGenerator:
             p.font.size = Pt(14)
             p.font.bold = True
             
-            for rec in recommendations[:3]:  # Top 3 recommendations
+            for i, rec in enumerate(recommendations[:3]):  # Top 3 recommendations
                 p = text_frame.add_paragraph()
                 priority = rec.get('priority', 99)
                 summary_text = rec.get('summary', 'N/A')[:50]
-                p.text = f"  {priority}. {summary_text}"
+                # Use descriptive priority text instead of raw number
+                priority_text = "High Priority" if priority <= 2 else ("Medium Priority" if priority <= 4 else "Low Priority")
+                p.text = f"  [{priority_text}] {summary_text}"
                 p.font.size = Pt(11)
                 p.level = 1
                 

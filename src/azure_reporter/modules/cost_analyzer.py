@@ -113,7 +113,7 @@ class CostAnalyzer:
                     'category': 'cost',
                     'severity': 'medium',
                     'issue': f"VM '{vm_name}' is deallocated but still incurs storage costs",
-                    'recommendation': 'Consider deleting the VM if no longer needed, or use Azure Reserved Instances for cost savings',
+                    'recommendation': 'Consider deleting the VM if no longer needed, or restart it if still required',
                     'potential_savings': 'Storage costs for deallocated VM',
                     'optimization_type': 'deallocated_vm'
                 })
@@ -360,7 +360,7 @@ class CostAnalyzer:
         return {
             'total_resources_analyzed': sum(
                 len(r) for r in resources.values() 
-                if isinstance(r, (list, dict, set, tuple))
+                if isinstance(r, list)
             ),
             'total_findings': len(findings),
             'findings_by_severity': severity_counts,
