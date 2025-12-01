@@ -258,15 +258,3 @@ class TagAnalyzer:
             })
         
         return findings
-
-    def get_non_compliant_resources_by_tag(self, tag_name: str) -> List[Dict[str, Any]]:
-        """Get list of resources missing a specific tag.
-        
-        Args:
-            tag_name: Name of the tag to check
-            
-        Returns:
-            List of resources missing the specified tag
-        """
-        # This method is for future use when filtering is needed
-        pass
