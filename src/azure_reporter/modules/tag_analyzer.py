@@ -69,7 +69,8 @@ class TagAnalyzer:
                 continue
             
             # Skip resource_groups as we've already processed them
-            if resource_type == 'resource_groups':
+            # Skip all_resources as it's a duplicate collection
+            if resource_type in ('resource_groups', 'all_resources'):
                 continue
                 
             for resource in resource_list:
