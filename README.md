@@ -33,8 +33,9 @@ A comprehensive tool to automatically generate reports and analysis of Azure env
 
 - **Tag Compliance Analysis**: Analyze resource tags against required tags (no AI required):
   - Define required tags that should be present on all resources
+  - **Validate tag values and flag invalid/placeholder values** (e.g., "none", "na", "tbd")
   - Get compliance percentage for each required tag
-  - Identify which resources are missing required tags
+  - Identify which resources are missing required tags or have invalid values
   - Generate findings for tag compliance issues
   - Can be enabled independently of AI analysis
 
@@ -255,7 +256,7 @@ When enabled, the cost analysis will:
 
 ### Tag Analysis Configuration
 
-Tag analysis allows you to check if your Azure resources have required tags. This feature does not require AI and can be enabled independently. Add the following to your `config.yaml`:
+Tag analysis allows you to check if your Azure resources have required tags and validates tag values for compliance. This feature does not require AI and can be enabled independently. Add the following to your `config.yaml`:
 
 ```yaml
 # Tag analysis settings
@@ -266,12 +267,23 @@ tag_analysis:
     - Owner
     - CostCenter
     - Project
+  # Optional: List of tag values that should be flagged as invalid/non-compliant
+  # Resources with these values will be marked as non-compliant even if the tag exists
+  invalid_tag_values:
+    - none
+    - na
+    - n/a
+    - ""      # empty string
+    - tbd
+    - todo
+    - unknown
 ```
 
 When enabled, the tag analysis will:
 - Report which resources are missing required tags
+- **Validate tag values and flag invalid/placeholder values** (e.g., "none", "na", "tbd")
 - Calculate compliance percentage for each required tag
-- Generate findings for resources with missing tags
+- Generate findings for resources with missing tags or invalid tag values
 - Add tag compliance items to the improvement backlog
 
 **Note:** You can disable AI analysis (`ai_analysis.enabled: false`) and still use tag analysis, or use both together.
