@@ -1259,9 +1259,9 @@ HTML_TEMPLATE = '''
                 <div class="form-row">
                     <div class="form-group" style="flex: 2;">
                         <label for="invalidTagValues">Invalid/Non-Compliant Tag Values (comma-separated)</label>
-                        <input type="text" id="invalidTagValues" placeholder="none, na, n/a, tbd, todo, unknown, (empty)">
+                        <input type="text" id="invalidTagValues" placeholder="none, na, n/a, tbd, todo, unknown">
                         <small style="font-size: 11px; color: #605e5c; display: block; margin-top: 4px;">
-                            Values that should be flagged as non-compliant (case-insensitive). Leave empty to skip value validation.
+                            Values that should be flagged as non-compliant (case-insensitive). Use empty quotes "" to flag empty values. Leave blank to skip value validation.
                         </small>
                     </div>
                 </div>
@@ -1807,7 +1807,7 @@ HTML_TEMPLATE = '''
                         }
                         
                         ${invalidValueTags.length > 0 ? 
-                            `<div class="tag-status missing">⚠️ RG Invalid Values: ${invalidValueTags.map(t => t.tag_name + '=' + t.tag_value).join(', ')}</div>` :
+                            `<div class="tag-status missing">⚠️ RG Invalid Tag Values: ${invalidValueTags.map(t => t.tag_name + '=' + t.tag_value).join(', ')}</div>` :
                             ''
                         }
                         
