@@ -140,14 +140,12 @@ class ConfigLoader:
             errors.append("AZURE_SUBSCRIPTION_ID is required")
         
         # Check if Service Principal credentials are provided
-        has_sp_credentials = bool(
-            self.azure_tenant_id and 
-            self.azure_client_id and 
-            self.azure_client_secret
-        )
+        sp_credentials = [self.azure_tenant_id, self.azure_client_id, self.azure_client_secret]
+        has_sp_credentials = all(sp_credentials)
+        has_partial_sp = any(sp_credentials) and not has_sp_credentials
         
         # If SP credentials are partially provided, warn about missing parts
-        if not has_sp_credentials and any([self.azure_tenant_id, self.azure_client_id, self.azure_client_secret]):
+        if has_partial_sp:
             missing = []
             if not self.azure_tenant_id:
                 missing.append("AZURE_TENANT_ID")
