@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 # Constants for content limits
 MAX_REQUIRED_TAGS_PER_SLIDE = 5
 MAX_RESOURCE_GROUPS_PER_SLIDE = 5
+MAX_TAGS_DISPLAY = 3
 
 
 class PowerPointGenerator:
@@ -482,6 +483,108 @@ class PowerPointGenerator:
         
         logger.info("Added tag compliance by resource group slides")
 
+    def add_tag_compliance_details_slide(self, tag_analysis: Dict[str, Any]):
+        """Add detailed tag compliance slide showing all resources under their resource groups."""
+        resource_groups_details = tag_analysis.get('resource_groups_details', [])
+        if not resource_groups_details:
+            return
+        
+        # Limit to first few resource groups to avoid too many slides
+        MAX_RGS_FOR_DETAILS = 3
+        MAX_RESOURCES_PER_RG_SLIDE = 8
+        
+        for rg in resource_groups_details[:MAX_RGS_FOR_DETAILS]:
+            rg_name = rg.get('name', 'Unknown')
+            resources = rg.get('resources', [])
+            
+            if not resources:
+                continue
+            
+            # Create slides for this resource group (one slide per MAX_RESOURCES_PER_RG_SLIDE resources)
+            for page_num, i in enumerate(range(0, len(resources), MAX_RESOURCES_PER_RG_SLIDE)):
+                slide_layout = self.prs.slide_layouts[1]
+                slide = self.prs.slides.add_slide(slide_layout)
+                
+                title = slide.shapes.title
+                if len(resources) > MAX_RESOURCES_PER_RG_SLIDE:
+                    title.text = f"Tag Compliance Details: {rg_name} ({page_num + 1})"
+                else:
+                    title.text = f"Tag Compliance Details: {rg_name}"
+                
+                content = slide.placeholders[1]
+                text_frame = content.text_frame
+                text_frame.clear()
+                
+                resources_slice = resources[i:i+MAX_RESOURCES_PER_RG_SLIDE]
+                
+                for idx, resource in enumerate(resources_slice):
+                    if idx > 0:
+                        p = text_frame.add_paragraph()
+                        p.text = ""  # Empty line for separation
+                    
+                    resource_name = resource.get('resource_name', 'Unknown')
+                    resource_type = resource.get('resource_type', 'Unknown')
+                    compliance = resource.get('compliance_rate', 0)
+                    tags = resource.get('tags', {})
+                    missing_tags = resource.get('missing_tags', [])
+                    invalid_value_tags = resource.get('invalid_value_tags', [])
+                    
+                    # Resource name with compliance indicator
+                    p = text_frame.add_paragraph() if idx > 0 else text_frame.paragraphs[0]
+                    status_icon = "✓" if compliance == 100.0 else "✗"
+                    p.text = f"{status_icon} {resource_name}"
+                    p.font.size = Pt(11)
+                    p.font.bold = True
+                    p.level = 0
+                    
+                    # Color code based on compliance
+                    if compliance == 100.0:
+                        p.font.color.rgb = RGBColor(0, 128, 0)  # Green
+                    else:
+                        p.font.color.rgb = RGBColor(255, 0, 0)  # Red
+                    
+                    # Resource type
+                    p = text_frame.add_paragraph()
+                    p.text = f"  Type: {resource_type}"
+                    p.font.size = Pt(8)
+                    p.font.color.rgb = RGBColor(100, 100, 100)
+                    p.level = 1
+                    
+                    # Show tags
+                    if tags:
+                        p = text_frame.add_paragraph()
+                        tags_str = ", ".join([f"{k}={v}" for k, v in list(tags.items())[:MAX_TAGS_DISPLAY]])
+                        if len(tags) > MAX_TAGS_DISPLAY:
+                            tags_str += f" (+{len(tags) - MAX_TAGS_DISPLAY} more)"
+                        p.text = f"  Tags: {tags_str}"
+                        p.font.size = Pt(8)
+                        p.level = 1
+                    else:
+                        p = text_frame.add_paragraph()
+                        p.text = "  Tags: None"
+                        p.font.size = Pt(8)
+                        p.font.color.rgb = RGBColor(255, 0, 0)
+                        p.level = 1
+                    
+                    # Show missing tags if any
+                    if missing_tags:
+                        p = text_frame.add_paragraph()
+                        p.text = f"  Missing: {', '.join(missing_tags)}"
+                        p.font.size = Pt(8)
+                        p.font.color.rgb = RGBColor(255, 0, 0)
+                        p.level = 1
+                    
+                    # Show invalid tag values if any
+                    if invalid_value_tags:
+                        invalid_tags_str = ", ".join([f"{t['tag_name']}={t['tag_value']}" for t in invalid_value_tags])
+                        p = text_frame.add_paragraph()
+                        p.text = f"  Invalid: {invalid_tags_str}"
+                        p.font.size = Pt(8)
+                        p.font.color.rgb = RGBColor(255, 0, 0)
+                        p.level = 1
+        
+        logger.info("Added tag compliance details slides")
+
     def add_summary_slide(self):
         """Add final summary slide."""
         slide_layout = self.prs.slide_layouts[1]
@@ -538,6 +641,7 @@ class PowerPointGenerator:
         if 'tag_analysis' in analyses:
             self.add_tag_compliance_overview_slide(analyses['tag_analysis'])
             self.add_tag_compliance_by_resource_group_slide(analyses['tag_analysis'])
+            self.add_tag_compliance_details_slide(analyses['tag_analysis'])
         
         # Add slides for each resource type
         resource_types = [

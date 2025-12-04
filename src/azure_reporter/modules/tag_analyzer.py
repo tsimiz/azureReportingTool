@@ -149,6 +149,7 @@ class TagAnalyzer:
                     'resource_name': resource.get('name', 'Unknown'),
                     'resource_id': resource.get('id', 'N/A'),
                     'resource_group': resource_group_name,
+                    'tags': resource_tags,  # Include actual tag key-value pairs
                     'existing_tags': list(resource_tag_names),
                     'missing_tags': list(missing),
                     'invalid_value_tags': invalid_value_tags,
@@ -257,6 +258,13 @@ class TagAnalyzer:
                 # If no resources, compliance is just the RG's own compliance
                 overall_rg_compliance = rg_own_compliance
             
+            # Sort resources: non-compliant first (by compliance rate ascending), then compliant (by compliance rate descending)
+            # This ensures non-compliant resources appear first, and within each group they're sorted by how non-compliant they are
+            sorted_resources = sorted(
+                resources,
+                key=lambda r: (r['compliance_rate'] == 100.0, r['compliance_rate'])
+            )
+            
             summary.append({
                 'name': rg_name,
                 'tags': rg_info['tags'],
@@ -266,7 +274,7 @@ class TagAnalyzer:
                 'compliance_rate': round(overall_rg_compliance, 1),
                 'total_resources': len(rg_info['resources']),
                 'non_compliant_resources': non_compliant_count,
-                'resources': rg_info['resources']
+                'resources': sorted_resources
             })
         
         # Sort by compliance rate (ascending) to show worst first
