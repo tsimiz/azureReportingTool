@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 # Constants for content limits
 MAX_REQUIRED_TAGS_PER_SLIDE = 5
 MAX_RESOURCE_GROUPS_PER_SLIDE = 5
+MAX_TAGS_DISPLAY = 3
 
 
 class PowerPointGenerator:
@@ -552,9 +553,9 @@ class PowerPointGenerator:
                     # Show tags
                     if tags:
                         p = text_frame.add_paragraph()
-                        tags_str = ", ".join([f"{k}={v}" for k, v in list(tags.items())[:3]])
-                        if len(tags) > 3:
-                            tags_str += f" (+{len(tags) - 3} more)"
+                        tags_str = ", ".join([f"{k}={v}" for k, v in list(tags.items())[:MAX_TAGS_DISPLAY]])
+                        if len(tags) > MAX_TAGS_DISPLAY:
+                            tags_str += f" (+{len(tags) - MAX_TAGS_DISPLAY} more)"
                         p.text = f"  Tags: {tags_str}"
                         p.font.size = Pt(8)
                         p.level = 1

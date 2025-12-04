@@ -14,6 +14,9 @@ MAX_ISSUE_TEXT_LENGTH = 80
 MAX_RECOMMENDATION_TEXT_LENGTH = 150
 MAX_RESOURCE_GROUPS_IN_PDF = 10
 MAX_RESOURCES_PER_GROUP_IN_PDF = 3
+MAX_TAGS_DISPLAY = 3
+MAX_MISSING_TAGS_DISPLAY = 3
+MAX_INVALID_TAGS_DISPLAY = 2
 
 
 class AzureReportPDF(FPDF):
@@ -292,9 +295,9 @@ class PDFGenerator:
                         # Show tags
                         self.pdf.set_text_color(0, 0, 0)
                         if tags:
-                            tags_str = ", ".join([f"{k}={v}" for k, v in list(tags.items())[:3]])
-                            if len(tags) > 3:
-                                tags_str += f" (+{len(tags) - 3} more)"
+                            tags_str = ", ".join([f"{k}={v}" for k, v in list(tags.items())[:MAX_TAGS_DISPLAY]])
+                            if len(tags) > MAX_TAGS_DISPLAY:
+                                tags_str += f" (+{len(tags) - MAX_TAGS_DISPLAY} more)"
                             self.pdf.cell(0, 4, f"      Tags: {tags_str}", 
                                          new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                         else:
@@ -306,18 +309,18 @@ class PDFGenerator:
                         # Show issues if any
                         if missing:
                             self.pdf.set_text_color(255, 0, 0)
-                            missing_str = ', '.join(missing[:3])
-                            if len(missing) > 3:
-                                missing_str += f" (+{len(missing) - 3} more)"
+                            missing_str = ', '.join(missing[:MAX_MISSING_TAGS_DISPLAY])
+                            if len(missing) > MAX_MISSING_TAGS_DISPLAY:
+                                missing_str += f" (+{len(missing) - MAX_MISSING_TAGS_DISPLAY} more)"
                             self.pdf.cell(0, 4, f"      Missing: {missing_str}", 
                                          new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                             self.pdf.set_text_color(0, 0, 0)
                         
                         if invalid_value_tags:
                             self.pdf.set_text_color(255, 0, 0)
-                            invalid_str = ", ".join([f"{t['tag_name']}={t['tag_value']}" for t in invalid_value_tags[:2]])
-                            if len(invalid_value_tags) > 2:
-                                invalid_str += f" (+{len(invalid_value_tags) - 2} more)"
+                            invalid_str = ", ".join([f"{t['tag_name']}={t['tag_value']}" for t in invalid_value_tags[:MAX_INVALID_TAGS_DISPLAY]])
+                            if len(invalid_value_tags) > MAX_INVALID_TAGS_DISPLAY:
+                                invalid_str += f" (+{len(invalid_value_tags) - MAX_INVALID_TAGS_DISPLAY} more)"
                             self.pdf.cell(0, 4, f"      Invalid: {invalid_str}", 
                                          new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                             self.pdf.set_text_color(0, 0, 0)
