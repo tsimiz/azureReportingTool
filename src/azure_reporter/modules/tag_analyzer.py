@@ -247,7 +247,8 @@ class TagAnalyzer:
             
             if resources:
                 # Calculate average compliance of all resources in this RG
-                resource_compliance_sum = sum(res.get('compliance_rate', 0) for res in resources)
+                # compliance_rate is always present in resource_info from analyze_resource_tags
+                resource_compliance_sum = sum(res['compliance_rate'] for res in resources)
                 resource_avg_compliance = resource_compliance_sum / len(resources)
                 
                 # Overall RG compliance is the average of RG's own compliance and resources' average compliance
@@ -340,8 +341,9 @@ class TagAnalyzer:
         # Add resource group compliance (resource groups themselves count as items)
         if resource_groups:
             for rg in resource_groups:
-                # Use the RG's own compliance rate (which already factors in its resources)
-                total_compliance += rg.get('compliance_rate', 0)
+                # Use the RG's compliance rate (which already factors in its resources)
+                # compliance_rate is always present from _build_resource_groups_summary
+                total_compliance += rg['compliance_rate']
                 total_items += 1
         
         if total_items == 0:

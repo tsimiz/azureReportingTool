@@ -56,8 +56,11 @@ class TestTagAnalyzerResourceGroups(unittest.TestCase):
         self.assertEqual(len(rg1['resources']), 2)
         
         # Find vm1 and vm2
-        vm1 = next(r for r in rg1['resources'] if r['resource_name'] == 'vm1')
-        vm2 = next(r for r in rg1['resources'] if r['resource_name'] == 'vm2')
+        vm1 = next((r for r in rg1['resources'] if r['resource_name'] == 'vm1'), None)
+        vm2 = next((r for r in rg1['resources'] if r['resource_name'] == 'vm2'), None)
+        
+        self.assertIsNotNone(vm1, "vm1 should be present in resources")
+        self.assertIsNotNone(vm2, "vm2 should be present in resources")
         
         self.assertEqual(vm1['compliance_rate'], 50.0)
         self.assertIn('Owner', vm1['missing_tags'])
@@ -164,8 +167,11 @@ class TestTagAnalyzerResourceGroups(unittest.TestCase):
         self.assertEqual(len(rg_details), 2)
         
         # Find rg1 and rg2
-        rg1 = next(r for r in rg_details if r['name'] == 'rg1')
-        rg2 = next(r for r in rg_details if r['name'] == 'rg2')
+        rg1 = next((r for r in rg_details if r['name'] == 'rg1'), None)
+        rg2 = next((r for r in rg_details if r['name'] == 'rg2'), None)
+        
+        self.assertIsNotNone(rg1, "rg1 should be present")
+        self.assertIsNotNone(rg2, "rg2 should be present")
         
         # rg1: (100 + 100) / 2 = 100%
         self.assertEqual(rg1['compliance_rate'], 100.0)
