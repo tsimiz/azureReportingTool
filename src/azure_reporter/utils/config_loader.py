@@ -133,10 +133,31 @@ class ConfigLoader:
     def validate_config(self) -> bool:
         """Validate that required configuration is present."""
         errors = []
+        warnings = []
         
         # Check Azure credentials
         if not self.azure_subscription_id:
             errors.append("AZURE_SUBSCRIPTION_ID is required")
+        
+        # Check if Service Principal credentials are provided
+        has_sp_credentials = bool(
+            self.azure_tenant_id and 
+            self.azure_client_id and 
+            self.azure_client_secret
+        )
+        
+        # If SP credentials are partially provided, warn about missing parts
+        if not has_sp_credentials and any([self.azure_tenant_id, self.azure_client_id, self.azure_client_secret]):
+            missing = []
+            if not self.azure_tenant_id:
+                missing.append("AZURE_TENANT_ID")
+            if not self.azure_client_id:
+                missing.append("AZURE_CLIENT_ID")
+            if not self.azure_client_secret:
+                missing.append("AZURE_CLIENT_SECRET")
+            warnings.append(f"Service Principal partially configured. Missing: {', '.join(missing)}. Will attempt to use Azure CLI authentication.")
+        elif not has_sp_credentials:
+            warnings.append("Service Principal credentials not provided. Will attempt to use Azure CLI authentication. Make sure you're logged in with 'az login'.")
         
         # Check AI configuration
         if self.config['ai_analysis']['enabled']:
@@ -156,6 +177,10 @@ class ConfigLoader:
                 if not self.azure_openai_deployment:
                     missing.append("AZURE_OPENAI_DEPLOYMENT")
                 errors.append(f"Azure OpenAI partially configured. Missing: {', '.join(missing)}")
+        
+        # Log warnings
+        for warning in warnings:
+            logger.warning(f"Configuration warning: {warning}")
         
         if errors:
             for error in errors:

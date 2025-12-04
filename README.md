@@ -99,38 +99,39 @@ Create a `.env` file in the project root (copy from `.env.example`):
 cp .env.example .env
 ```
 
-Edit `.env` and add your credentials:
+The tool supports **two authentication methods** for Azure:
 
-**Option A: Using OpenAI API**
+#### Authentication Method 1: Azure CLI Login (Recommended for Development)
 
-```env
-# Azure credentials
-AZURE_TENANT_ID=your-tenant-id
-AZURE_CLIENT_ID=your-client-id
-AZURE_CLIENT_SECRET=your-client-secret
-AZURE_SUBSCRIPTION_ID=your-subscription-id
+The simplest way to get started is to use Azure CLI authentication:
 
-# OpenAI API key
-OPENAI_API_KEY=your-openai-api-key
-OPENAI_MODEL=gpt-4
-```
+1. **Install Azure CLI** if not already installed ([installation guide](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli))
 
-**Option B: Using Azure AI Foundry (Azure OpenAI Service)**
+2. **Login to Azure**:
+   ```bash
+   az login
+   ```
 
-```env
-# Azure credentials
-AZURE_TENANT_ID=your-tenant-id
-AZURE_CLIENT_ID=your-client-id
-AZURE_CLIENT_SECRET=your-client-secret
-AZURE_SUBSCRIPTION_ID=your-subscription-id
+3. **Get your Subscription ID**:
+   ```bash
+   az account show --query id -o tsv
+   ```
 
-# Azure AI Foundry / Azure OpenAI Service
-AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com/
-AZURE_OPENAI_KEY=your-azure-openai-key
-AZURE_OPENAI_DEPLOYMENT=your-deployment-name
-```
+4. **Configure `.env` with minimal settings**:
+   ```env
+   # Required: Your Azure subscription ID
+   AZURE_SUBSCRIPTION_ID=your-subscription-id
+   
+   # AI Service (choose one)
+   OPENAI_API_KEY=your-openai-api-key
+   OPENAI_MODEL=gpt-4
+   ```
 
-#### How to get Azure credentials:
+That's it! The tool will automatically use your Azure CLI credentials.
+
+#### Authentication Method 2: Service Principal (Recommended for Production)
+
+For production environments or automated scenarios, use a Service Principal:
 
 1. **Create a Service Principal**:
    ```bash
@@ -142,9 +143,33 @@ AZURE_OPENAI_DEPLOYMENT=your-deployment-name
    - `password` → Use as `AZURE_CLIENT_SECRET`
    - `tenant` → Use as `AZURE_TENANT_ID`
 
-3. Get your Subscription ID:
-   ```bash
-   az account show --query id -o tsv
+3. **Configure `.env` with Service Principal credentials**:
+
+   **Using OpenAI API:**
+   ```env
+   # Azure credentials
+   AZURE_SUBSCRIPTION_ID=your-subscription-id
+   AZURE_TENANT_ID=your-tenant-id
+   AZURE_CLIENT_ID=your-client-id
+   AZURE_CLIENT_SECRET=your-client-secret
+   
+   # OpenAI API key
+   OPENAI_API_KEY=your-openai-api-key
+   OPENAI_MODEL=gpt-4
+   ```
+
+   **Using Azure AI Foundry (Azure OpenAI Service):**
+   ```env
+   # Azure credentials
+   AZURE_SUBSCRIPTION_ID=your-subscription-id
+   AZURE_TENANT_ID=your-tenant-id
+   AZURE_CLIENT_ID=your-client-id
+   AZURE_CLIENT_SECRET=your-client-secret
+   
+   # Azure AI Foundry / Azure OpenAI Service
+   AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com/
+   AZURE_OPENAI_KEY=your-azure-openai-key
+   AZURE_OPENAI_DEPLOYMENT=your-deployment-name
    ```
 
 #### How to get Azure AI Foundry (Azure OpenAI) credentials:
