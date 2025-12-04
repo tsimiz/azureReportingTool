@@ -279,10 +279,10 @@ class PDFGenerator:
                         
                         # Color code based on compliance
                         if compliance == 100.0:
-                            status_icon = "✓"
+                            status_icon = "[OK]"
                             self.pdf.set_text_color(0, 128, 0)  # Green
                         else:
-                            status_icon = "✗"
+                            status_icon = "[X]"
                             self.pdf.set_text_color(255, 0, 0)  # Red
                         
                         # Resource name with status
