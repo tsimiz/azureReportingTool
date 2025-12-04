@@ -326,12 +326,206 @@ class TestTagAnalyzerEdgeCases(unittest.TestCase):
     def test_calculate_resource_compliance_no_required_tags(self):
         """Test compliance calculation with no required tags."""
         analyzer = TagAnalyzer()  # No required tags
-        resource_tags = {'Environment', 'Owner'}
+        resource_tag_names = {'Environment', 'Owner'}
         
-        compliance = analyzer._calculate_resource_compliance(resource_tags)
+        compliance = analyzer._calculate_resource_compliance(resource_tag_names, None)
         
         # With no required tags, everything is 100% compliant
         self.assertEqual(compliance, 100.0)
+
+
+class TestTagAnalyzerInvalidValues(unittest.TestCase):
+    """Test cases for invalid tag values feature."""
+
+    def test_tag_analyzer_with_invalid_values(self):
+        """Test TagAnalyzer initialization with invalid tag values."""
+        invalid_values = ['none', 'na', 'n/a', '']
+        analyzer = TagAnalyzer(invalid_tag_values=invalid_values)
+        self.assertEqual(len(analyzer.invalid_tag_values), 4)
+        # Should be normalized to lowercase
+        self.assertIn('none', analyzer.invalid_tag_values)
+        self.assertIn('na', analyzer.invalid_tag_values)
+
+    def test_is_tag_value_valid(self):
+        """Test tag value validation."""
+        invalid_values = ['none', 'na', 'n/a', '', 'tbd']
+        analyzer = TagAnalyzer(invalid_tag_values=invalid_values)
+        
+        # Valid values
+        self.assertTrue(analyzer._is_tag_value_valid('production'))
+        self.assertTrue(analyzer._is_tag_value_valid('dev'))
+        self.assertTrue(analyzer._is_tag_value_valid('test'))
+        
+        # Invalid values (case-insensitive)
+        self.assertFalse(analyzer._is_tag_value_valid('none'))
+        self.assertFalse(analyzer._is_tag_value_valid('None'))
+        self.assertFalse(analyzer._is_tag_value_valid('NONE'))
+        self.assertFalse(analyzer._is_tag_value_valid('na'))
+        self.assertFalse(analyzer._is_tag_value_valid('N/A'))
+        self.assertFalse(analyzer._is_tag_value_valid(''))
+        self.assertFalse(analyzer._is_tag_value_valid('tbd'))
+        self.assertFalse(analyzer._is_tag_value_valid('TBD'))
+
+    def test_analyze_resources_with_invalid_tag_values(self):
+        """Test analyzing resources with invalid tag values."""
+        required_tags = ['Environment', 'Owner']
+        invalid_values = ['none', 'na', '']
+        analyzer = TagAnalyzer(required_tags=required_tags, invalid_tag_values=invalid_values)
+        
+        resources = {
+            'virtual_machines': [
+                {'name': 'vm1', 'id': '/subs/1/vm1', 'tags': {'Environment': 'none', 'Owner': 'team1'}},
+                {'name': 'vm2', 'id': '/subs/1/vm2', 'tags': {'Environment': 'prod', 'Owner': 'na'}}
+            ]
+        }
+        
+        result = analyzer.analyze_resource_tags(resources)
+        
+        # Both resources should be non-compliant
+        self.assertEqual(len(result['non_compliant_resources']), 2)
+        
+        # Check first resource has invalid Environment value
+        vm1 = next(r for r in result['non_compliant_resources'] if r['resource_name'] == 'vm1')
+        self.assertEqual(len(vm1['invalid_value_tags']), 1)
+        self.assertEqual(vm1['invalid_value_tags'][0]['tag_name'], 'Environment')
+        self.assertEqual(vm1['invalid_value_tags'][0]['tag_value'], 'none')
+        
+        # Check second resource has invalid Owner value
+        vm2 = next(r for r in result['non_compliant_resources'] if r['resource_name'] == 'vm2')
+        self.assertEqual(len(vm2['invalid_value_tags']), 1)
+        self.assertEqual(vm2['invalid_value_tags'][0]['tag_name'], 'Owner')
+
+    def test_compliance_rate_with_invalid_values(self):
+        """Test that compliance rate considers invalid tag values."""
+        required_tags = ['Environment', 'Owner']
+        invalid_values = ['none', 'na']
+        analyzer = TagAnalyzer(required_tags=required_tags, invalid_tag_values=invalid_values)
+        
+        resources = {
+            'virtual_machines': [
+                # Fully compliant
+                {'name': 'vm1', 'id': '/subs/1/vm1', 'tags': {'Environment': 'prod', 'Owner': 'team1'}},
+                # One invalid value
+                {'name': 'vm2', 'id': '/subs/1/vm2', 'tags': {'Environment': 'none', 'Owner': 'team2'}},
+                # Both invalid values
+                {'name': 'vm3', 'id': '/subs/1/vm3', 'tags': {'Environment': 'na', 'Owner': 'none'}}
+            ]
+        }
+        
+        result = analyzer.analyze_resource_tags(resources)
+        
+        # vm1: 100% compliant
+        # vm2: 50% compliant (1 of 2 tags valid)
+        # vm3: 0% compliant (0 of 2 tags valid)
+        # Overall: (100 + 50 + 0) / 3 = 50%
+        self.assertEqual(result['summary']['overall_compliance_rate'], 50.0)
+
+    def test_invalid_values_do_not_affect_missing_tags(self):
+        """Test that invalid values checking doesn't interfere with missing tags."""
+        required_tags = ['Environment', 'Owner', 'CostCenter']
+        invalid_values = ['none']
+        analyzer = TagAnalyzer(required_tags=required_tags, invalid_tag_values=invalid_values)
+        
+        resources = {
+            'virtual_machines': [
+                {'name': 'vm1', 'id': '/subs/1/vm1', 'tags': {'Environment': 'none'}}
+            ]
+        }
+        
+        result = analyzer.analyze_resource_tags(resources)
+        
+        vm1 = result['non_compliant_resources'][0]
+        # Should have missing tags: Owner and CostCenter
+        self.assertEqual(len(vm1['missing_tags']), 2)
+        self.assertIn('Owner', vm1['missing_tags'])
+        self.assertIn('CostCenter', vm1['missing_tags'])
+        
+        # Should have invalid value tag: Environment
+        self.assertEqual(len(vm1['invalid_value_tags']), 1)
+        self.assertEqual(vm1['invalid_value_tags'][0]['tag_name'], 'Environment')
+
+    def test_findings_include_invalid_values(self):
+        """Test that findings are generated for invalid tag values."""
+        required_tags = ['Environment']
+        invalid_values = ['none']
+        analyzer = TagAnalyzer(required_tags=required_tags, invalid_tag_values=invalid_values)
+        
+        resources = {
+            'virtual_machines': [
+                {'name': f'vm{i}', 'id': f'/subs/1/vm{i}', 'tags': {'Environment': 'none'}} 
+                for i in range(10)
+            ]
+        }
+        
+        result = analyzer.analyze_resource_tags(resources)
+        
+        # Should have findings about invalid values
+        findings = result['findings']
+        self.assertGreater(len(findings), 0)
+        
+        # Check if there's a finding about invalid tag values
+        invalid_value_findings = [f for f in findings if 'invalid' in f['issue'].lower() or 'non-compliant values' in f['issue'].lower()]
+        self.assertGreater(len(invalid_value_findings), 0)
+
+    def test_no_invalid_values_configured(self):
+        """Test that when no invalid values are configured, all values are valid."""
+        required_tags = ['Environment']
+        analyzer = TagAnalyzer(required_tags=required_tags)  # No invalid_tag_values
+        
+        resources = {
+            'virtual_machines': [
+                {'name': 'vm1', 'id': '/subs/1/vm1', 'tags': {'Environment': 'none'}},
+                {'name': 'vm2', 'id': '/subs/1/vm2', 'tags': {'Environment': 'na'}}
+            ]
+        }
+        
+        result = analyzer.analyze_resource_tags(resources)
+        
+        # All resources should be compliant since no invalid values are configured
+        self.assertEqual(result['summary']['overall_compliance_rate'], 100.0)
+        self.assertEqual(len(result['non_compliant_resources']), 0)
+
+    def test_empty_string_value_detection(self):
+        """Test that empty string tag values are detected as invalid."""
+        required_tags = ['Environment']
+        invalid_values = ['']
+        analyzer = TagAnalyzer(required_tags=required_tags, invalid_tag_values=invalid_values)
+        
+        resources = {
+            'virtual_machines': [
+                {'name': 'vm1', 'id': '/subs/1/vm1', 'tags': {'Environment': ''}}
+            ]
+        }
+        
+        result = analyzer.analyze_resource_tags(resources)
+        
+        self.assertEqual(len(result['non_compliant_resources']), 1)
+        vm1 = result['non_compliant_resources'][0]
+        self.assertEqual(len(vm1['invalid_value_tags']), 1)
+        self.assertEqual(vm1['invalid_value_tags'][0]['tag_name'], 'Environment')
+
+    def test_resource_groups_with_invalid_values(self):
+        """Test that resource groups with invalid tag values are detected."""
+        required_tags = ['Environment']
+        invalid_values = ['none']
+        analyzer = TagAnalyzer(required_tags=required_tags, invalid_tag_values=invalid_values)
+        
+        resources = {
+            'resource_groups': [
+                {'name': 'rg1', 'tags': {'Environment': 'none'}}
+            ]
+        }
+        
+        result = analyzer.analyze_resource_tags(resources)
+        
+        # Check resource groups details
+        rg_details = result['resource_groups_details']
+        self.assertEqual(len(rg_details), 1)
+        
+        rg1 = rg_details[0]
+        self.assertEqual(len(rg1['invalid_value_tags']), 1)
+        self.assertEqual(rg1['invalid_value_tags'][0]['tag_name'], 'Environment')
+        self.assertEqual(rg1['invalid_value_tags'][0]['tag_value'], 'none')
 
 
 if __name__ == '__main__':

@@ -150,8 +150,9 @@ class AzureReporter:
             return None
         
         required_tags = tag_config.get('required_tags', [])
+        invalid_tag_values = tag_config.get('invalid_tag_values', [])
         
-        analyzer = TagAnalyzer(required_tags=required_tags)
+        analyzer = TagAnalyzer(required_tags=required_tags, invalid_tag_values=invalid_tag_values)
         tag_analysis = analyzer.analyze_resource_tags(resources)
         
         # Log tag analysis results
