@@ -162,8 +162,15 @@ class TagAnalyzer:
                 if resource_group_name in resource_groups_info:
                     resource_groups_info[resource_group_name]['resources'].append(resource_info)
         
-        # Calculate compliance metrics
-        compliance_rate = self._calculate_overall_compliance(missing_tags_by_resource, total_resources)
+        # Build resource groups by compliance summary (before calculating overall compliance)
+        resource_groups_by_compliance = self._build_resource_groups_summary(resource_groups_info)
+        
+        # Calculate compliance metrics (now includes resource groups)
+        compliance_rate = self._calculate_overall_compliance(
+            missing_tags_by_resource, 
+            total_resources, 
+            resource_groups_by_compliance
+        )
         
         # Build tag summary
         tag_summary = []
@@ -186,9 +193,6 @@ class TagAnalyzer:
                 'non_compliant_resources': total_resources - count,
                 'compliance_percentage': round(count / total_resources * 100, 1) if total_resources > 0 else 0
             })
-        
-        # Build resource groups by compliance summary
-        resource_groups_by_compliance = self._build_resource_groups_summary(resource_groups_info)
         
         analysis_result = {
             'summary': {
@@ -236,13 +240,29 @@ class TagAnalyzer:
                    (res.get('invalid_value_tags') and len(res['invalid_value_tags']) > 0)
             )
             
+            # Calculate overall compliance for this resource group
+            # This includes both the RG's own tag compliance and the compliance of resources within it
+            rg_own_compliance = rg_info['compliance_rate']
+            resources = rg_info['resources']
+            
+            if resources:
+                # Calculate average compliance of all resources in this RG
+                resource_compliance_sum = sum(res.get('compliance_rate', 0) for res in resources)
+                resource_avg_compliance = resource_compliance_sum / len(resources)
+                
+                # Overall RG compliance is the average of RG's own compliance and resources' average compliance
+                overall_rg_compliance = (rg_own_compliance + resource_avg_compliance) / 2
+            else:
+                # If no resources, compliance is just the RG's own compliance
+                overall_rg_compliance = rg_own_compliance
+            
             summary.append({
                 'name': rg_name,
                 'tags': rg_info['tags'],
                 'existing_tags': rg_info['existing_tags'],
                 'missing_tags': rg_info['missing_tags'],
                 'invalid_value_tags': rg_info.get('invalid_value_tags', []),
-                'compliance_rate': rg_info['compliance_rate'],
+                'compliance_rate': round(overall_rg_compliance, 1),
                 'total_resources': len(rg_info['resources']),
                 'non_compliant_resources': non_compliant_count,
                 'resources': rg_info['resources']
@@ -282,30 +302,52 @@ class TagAnalyzer:
     def _calculate_overall_compliance(
         self, 
         missing_tags_by_resource: List[Dict[str, Any]], 
-        total_resources: int
+        total_resources: int,
+        resource_groups: List[Dict[str, Any]] = None
     ) -> float:
         """Calculate overall tag compliance rate.
         
         Args:
             missing_tags_by_resource: List of resources with missing tags
             total_resources: Total number of resources analyzed
+            resource_groups: List of resource groups with their compliance details
             
         Returns:
             Overall compliance rate as percentage
         """
-        if not self.required_tags or total_resources == 0:
+        if not self.required_tags:
             return 100.0
         
         # Calculate average compliance across all resources
-        compliant_resources = total_resources - len(missing_tags_by_resource)
-        partially_compliant = [r for r in missing_tags_by_resource if r['compliance_rate'] > 0]
+        if total_resources == 0 and (not resource_groups or len(resource_groups) == 0):
+            return 100.0
         
-        # Weight: fully compliant resources contribute 100%, partial contributes their rate
-        total_compliance = (compliant_resources * 100)
-        for resource in partially_compliant:
-            total_compliance += resource['compliance_rate']
+        total_compliance = 0
+        total_items = 0
         
-        return round(total_compliance / total_resources, 1)
+        # Add resource compliance
+        if total_resources > 0:
+            compliant_resources = total_resources - len(missing_tags_by_resource)
+            partially_compliant = [r for r in missing_tags_by_resource if r['compliance_rate'] > 0]
+            
+            # Weight: fully compliant resources contribute 100%, partial contributes their rate
+            total_compliance += (compliant_resources * 100)
+            for resource in partially_compliant:
+                total_compliance += resource['compliance_rate']
+            
+            total_items += total_resources
+        
+        # Add resource group compliance (resource groups themselves count as items)
+        if resource_groups:
+            for rg in resource_groups:
+                # Use the RG's own compliance rate (which already factors in its resources)
+                total_compliance += rg.get('compliance_rate', 0)
+                total_items += 1
+        
+        if total_items == 0:
+            return 100.0
+        
+        return round(total_compliance / total_items, 1)
 
     def _generate_findings(
         self, 
