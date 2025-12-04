@@ -324,6 +324,160 @@ class PowerPointGenerator:
         
         logger.info("Added cost recommendations slide")
 
+    def add_tag_compliance_overview_slide(self, tag_analysis: Dict[str, Any]):
+        """Add tag compliance overview slide."""
+        if not tag_analysis:
+            return
+        
+        slide_layout = self.prs.slide_layouts[1]
+        slide = self.prs.slides.add_slide(slide_layout)
+        
+        title = slide.shapes.title
+        title.text = "Tag Compliance Overview"
+        
+        content = slide.placeholders[1]
+        text_frame = content.text_frame
+        text_frame.clear()
+        
+        summary = tag_analysis.get('summary', {})
+        compliance_rate = summary.get('overall_compliance_rate', 0)
+        
+        # Overall compliance
+        p = text_frame.paragraphs[0]
+        p.text = f"Overall Tag Compliance: {compliance_rate}%"
+        p.font.size = Pt(16)
+        p.font.bold = True
+        
+        # Color code the compliance rate
+        if compliance_rate >= 90:
+            p.font.color.rgb = RGBColor(0, 128, 0)  # Green
+        elif compliance_rate >= 70:
+            p.font.color.rgb = RGBColor(255, 165, 0)  # Orange
+        else:
+            p.font.color.rgb = RGBColor(255, 0, 0)  # Red
+        
+        # Summary statistics
+        p = text_frame.add_paragraph()
+        p.text = ""  # Empty line
+        
+        stats = [
+            f"Total Resources Analyzed: {summary.get('total_resources', 0)}",
+            f"Resources with Tags: {summary.get('resources_with_tags', 0)}",
+            f"Resources without Tags: {summary.get('resources_without_tags', 0)}",
+            f"Required Tags: {summary.get('required_tags_count', 0)}",
+            f"Resource Groups: {summary.get('total_resource_groups', 0)}"
+        ]
+        
+        for stat in stats:
+            p = text_frame.add_paragraph()
+            p.text = stat
+            p.font.size = Pt(12)
+            p.level = 1
+        
+        # Required tags compliance summary
+        required_tags = tag_analysis.get('required_tags_compliance', [])
+        if required_tags:
+            p = text_frame.add_paragraph()
+            p.text = ""  # Empty line
+            
+            p = text_frame.add_paragraph()
+            p.text = "Required Tags Compliance:"
+            p.font.size = Pt(14)
+            p.font.bold = True
+            
+            for tag_info in required_tags[:5]:  # Top 5 required tags
+                tag_name = tag_info.get('tag_name', 'Unknown')
+                tag_compliance = tag_info.get('compliance_percentage', 0)
+                
+                p = text_frame.add_paragraph()
+                p.text = f"  {tag_name}: {tag_compliance}%"
+                p.font.size = Pt(11)
+                p.level = 1
+                
+                if tag_compliance >= 90:
+                    p.font.color.rgb = RGBColor(0, 128, 0)  # Green
+                elif tag_compliance >= 70:
+                    p.font.color.rgb = RGBColor(255, 165, 0)  # Orange
+                else:
+                    p.font.color.rgb = RGBColor(255, 0, 0)  # Red
+        
+        logger.info("Added tag compliance overview slide")
+
+    def add_tag_compliance_by_resource_group_slide(self, tag_analysis: Dict[str, Any]):
+        """Add tag compliance by resource group slide."""
+        resource_groups_details = tag_analysis.get('resource_groups_details', [])
+        if not resource_groups_details:
+            return
+        
+        # Create multiple slides if needed (max 5 resource groups per slide)
+        for slide_num, i in enumerate(range(0, len(resource_groups_details), 5)):
+            slide_layout = self.prs.slide_layouts[1]
+            slide = self.prs.slides.add_slide(slide_layout)
+            
+            title = slide.shapes.title
+            if len(resource_groups_details) > 5:
+                title.text = f"Tag Compliance by Resource Group ({slide_num + 1})"
+            else:
+                title.text = "Tag Compliance by Resource Group"
+            
+            content = slide.placeholders[1]
+            text_frame = content.text_frame
+            text_frame.clear()
+            
+            rg_slice = resource_groups_details[i:i+5]
+            first = True
+            
+            for rg in rg_slice:
+                if not first:
+                    p = text_frame.add_paragraph()
+                    p.text = ""  # Empty line
+                else:
+                    first = False
+                
+                rg_name = rg.get('name', 'Unknown')
+                rg_compliance = rg.get('compliance_rate', 0)
+                rg_missing_tags = rg.get('missing_tags', [])
+                non_compliant_resources = rg.get('non_compliant_resources', 0)
+                total_resources = rg.get('total_resources', 0)
+                
+                # Resource group name and compliance
+                p = text_frame.add_paragraph() if not first else text_frame.paragraphs[0]
+                p.text = f"{rg_name} - {rg_compliance}% compliant"
+                p.font.size = Pt(12)
+                p.font.bold = True
+                p.level = 0
+                
+                if rg_compliance >= 90:
+                    p.font.color.rgb = RGBColor(0, 128, 0)
+                elif rg_compliance >= 70:
+                    p.font.color.rgb = RGBColor(255, 165, 0)
+                else:
+                    p.font.color.rgb = RGBColor(255, 0, 0)
+                
+                # Resource group missing tags
+                if rg_missing_tags:
+                    p = text_frame.add_paragraph()
+                    p.text = f"  RG Missing Tags: {', '.join(rg_missing_tags)}"
+                    p.font.size = Pt(10)
+                    p.font.color.rgb = RGBColor(255, 0, 0)
+                    p.level = 1
+                else:
+                    p = text_frame.add_paragraph()
+                    p.text = "  RG Tags: ✓ All required tags present"
+                    p.font.size = Pt(10)
+                    p.font.color.rgb = RGBColor(0, 128, 0)
+                    p.level = 1
+                
+                # Resource compliance summary
+                p = text_frame.add_paragraph()
+                p.text = f"  Resources: {non_compliant_resources} of {total_resources} missing tags"
+                p.font.size = Pt(10)
+                p.level = 1
+                if non_compliant_resources > 0:
+                    p.font.color.rgb = RGBColor(255, 140, 0)
+        
+        logger.info("Added tag compliance by resource group slides")
+
     def add_summary_slide(self):
         """Add final summary slide."""
         slide_layout = self.prs.slide_layouts[1]
@@ -375,6 +529,11 @@ class PowerPointGenerator:
         if 'cost_analysis' in analyses:
             self.add_cost_analysis_slide(analyses['cost_analysis'])
             self.add_cost_recommendations_slide(analyses['cost_analysis'])
+        
+        # Tag analysis (if available)
+        if 'tag_analysis' in analyses:
+            self.add_tag_compliance_overview_slide(analyses['tag_analysis'])
+            self.add_tag_compliance_by_resource_group_slide(analyses['tag_analysis'])
         
         # Add slides for each resource type
         resource_types = [

@@ -40,9 +40,36 @@ class TagAnalyzer:
         # Track tag usage
         tag_values: Dict[str, Dict[str, int]] = {}  # tag_name -> {value -> count}
         
+        # Track resource groups and their tags
+        resource_groups_info: Dict[str, Dict[str, Any]] = {}  # rg_name -> {tags, resources}
+        
+        # First, extract resource group information
+        resource_groups_list = resources.get('resource_groups', [])
+        for rg in resource_groups_list:
+            if isinstance(rg, dict):
+                rg_name = rg.get('name', 'Unknown')
+                rg_tags = rg.get('tags', {}) or {}
+                rg_tag_names = set(rg_tags.keys())
+                
+                # Check resource group compliance
+                rg_missing_tags = list(self.required_tags - rg_tag_names) if self.required_tags else []
+                
+                resource_groups_info[rg_name] = {
+                    'name': rg_name,
+                    'tags': rg_tags,
+                    'existing_tags': list(rg_tag_names),
+                    'missing_tags': rg_missing_tags,
+                    'compliance_rate': self._calculate_resource_compliance(rg_tag_names),
+                    'resources': []
+                }
+        
         # Analyze each resource type
         for resource_type, resource_list in resources.items():
             if not isinstance(resource_list, list):
+                continue
+            
+            # Skip resource_groups as we've already processed them
+            if resource_type == 'resource_groups':
                 continue
                 
             for resource in resource_list:
@@ -51,6 +78,7 @@ class TagAnalyzer:
                     
                 total_resources += 1
                 resource_tags = resource.get('tags', {}) or {}
+                resource_group_name = resource.get('resource_group', 'N/A')
                 
                 if resource_tags:
                     resources_with_tags += 1
@@ -67,20 +95,25 @@ class TagAnalyzer:
                     tag_values[tag_name][tag_value_str] = tag_values[tag_name].get(tag_value_str, 0) + 1
                 
                 # Check for missing required tags
-                if self.required_tags:
-                    resource_tag_names = set(resource_tags.keys())
-                    missing = self.required_tags - resource_tag_names
-                    
-                    if missing:
-                        missing_tags_by_resource.append({
-                            'resource_type': resource_type,
-                            'resource_name': resource.get('name', 'Unknown'),
-                            'resource_id': resource.get('id', 'N/A'),
-                            'resource_group': resource.get('resource_group', 'N/A'),
-                            'existing_tags': list(resource_tag_names),
-                            'missing_tags': list(missing),
-                            'compliance_rate': self._calculate_resource_compliance(resource_tag_names)
-                        })
+                resource_tag_names = set(resource_tags.keys())
+                missing = self.required_tags - resource_tag_names if self.required_tags else set()
+                
+                resource_info = {
+                    'resource_type': resource_type,
+                    'resource_name': resource.get('name', 'Unknown'),
+                    'resource_id': resource.get('id', 'N/A'),
+                    'resource_group': resource_group_name,
+                    'existing_tags': list(resource_tag_names),
+                    'missing_tags': list(missing),
+                    'compliance_rate': self._calculate_resource_compliance(resource_tag_names)
+                }
+                
+                if missing:
+                    missing_tags_by_resource.append(resource_info)
+                
+                # Add resource to its resource group
+                if resource_group_name in resource_groups_info:
+                    resource_groups_info[resource_group_name]['resources'].append(resource_info)
         
         # Calculate compliance metrics
         compliance_rate = self._calculate_overall_compliance(missing_tags_by_resource, total_resources)
@@ -107,6 +140,9 @@ class TagAnalyzer:
                 'compliance_percentage': round(count / total_resources * 100, 1) if total_resources > 0 else 0
             })
         
+        # Build resource groups by compliance summary
+        resource_groups_by_compliance = self._build_resource_groups_summary(resource_groups_info)
+        
         analysis_result = {
             'summary': {
                 'total_resources': total_resources,
@@ -114,11 +150,13 @@ class TagAnalyzer:
                 'resources_without_tags': resources_without_tags,
                 'unique_tags_found': len(all_tags),
                 'required_tags_count': len(self.required_tags),
-                'overall_compliance_rate': compliance_rate
+                'overall_compliance_rate': compliance_rate,
+                'total_resource_groups': len(resource_groups_info)
             },
             'tag_usage': tag_summary,
             'required_tags_compliance': required_tags_summary,
             'non_compliant_resources': missing_tags_by_resource,
+            'resource_groups_details': resource_groups_by_compliance,
             'findings': self._generate_findings(
                 missing_tags_by_resource, 
                 compliance_rate, 
@@ -129,6 +167,41 @@ class TagAnalyzer:
         
         logger.info(f"Tag analysis complete. Compliance rate: {compliance_rate}%")
         return analysis_result
+
+    def _build_resource_groups_summary(
+        self, 
+        resource_groups_info: Dict[str, Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Build a summary of resource groups with their tag compliance.
+        
+        Args:
+            resource_groups_info: Dictionary of resource group information
+            
+        Returns:
+            List of resource groups with compliance details, sorted by compliance rate
+        """
+        summary = []
+        for rg_name, rg_info in resource_groups_info.items():
+            # Count non-compliant resources in this resource group
+            non_compliant_count = sum(
+                1 for res in rg_info['resources'] 
+                if res.get('missing_tags') and len(res['missing_tags']) > 0
+            )
+            
+            summary.append({
+                'name': rg_name,
+                'tags': rg_info['tags'],
+                'existing_tags': rg_info['existing_tags'],
+                'missing_tags': rg_info['missing_tags'],
+                'compliance_rate': rg_info['compliance_rate'],
+                'total_resources': len(rg_info['resources']),
+                'non_compliant_resources': non_compliant_count,
+                'resources': rg_info['resources']
+            })
+        
+        # Sort by compliance rate (ascending) to show worst first
+        summary.sort(key=lambda x: x['compliance_rate'])
+        return summary
 
     def _calculate_resource_compliance(self, resource_tags: Set[str]) -> float:
         """Calculate compliance rate for a single resource.
