@@ -1242,7 +1242,7 @@ HTML_TEMPLATE = '''
                 
                 <h4 style="margin: 16px 0 12px; font-size: 14px;">Tag Analysis</h4>
                 <div class="alert alert-info" style="margin-bottom: 12px; padding: 10px;">
-                    Tag analysis checks resource tags against required tags. This feature does not use AI.
+                    Tag analysis checks resource tags against required tags and validates tag values. This feature does not use AI.
                 </div>
                 <div class="form-row">
                     <div class="form-group">
@@ -1254,6 +1254,15 @@ HTML_TEMPLATE = '''
                     <div class="form-group" style="flex: 2;">
                         <label for="requiredTags">Required Tags (comma-separated)</label>
                         <input type="text" id="requiredTags" placeholder="Environment, Owner, CostCenter, Project">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label for="invalidTagValues">Invalid/Non-Compliant Tag Values (comma-separated)</label>
+                        <input type="text" id="invalidTagValues" placeholder="none, na, n/a, tbd, todo, unknown">
+                        <small style="font-size: 11px; color: #605e5c; display: block; margin-top: 4px;">
+                            Values that should be flagged as non-compliant (case-insensitive). Use empty quotes "" to flag empty values. Leave blank to skip value validation.
+                        </small>
                     </div>
                 </div>
             </div>
@@ -1558,6 +1567,11 @@ HTML_TEMPLATE = '''
                 ? requiredTagsInput.split(',').map(tag => tag.trim()).filter(tag => tag)
                 : [];
             
+            const invalidTagValuesInput = document.getElementById('invalidTagValues').value;
+            const invalidTagValues = invalidTagValuesInput 
+                ? invalidTagValuesInput.split(',').map(val => val.trim()).filter(val => val)
+                : [];
+            
             return {
                 output_dir: document.getElementById('outputDir').value,
                 report_filename: document.getElementById('reportFilename').value,
@@ -1574,7 +1588,8 @@ HTML_TEMPLATE = '''
                 },
                 tag_analysis: {
                     enabled: document.getElementById('enableTagAnalysis').checked,
-                    required_tags: requiredTags
+                    required_tags: requiredTags,
+                    invalid_tag_values: invalidTagValues
                 }
             };
         }
@@ -1773,7 +1788,11 @@ HTML_TEMPLATE = '''
                 const nonCompliantCount = rg.non_compliant_resources || 0;
                 const totalResources = rg.total_resources || 0;
                 const resources = rg.resources || [];
-                const nonCompliantResources = resources.filter(r => r.missing_tags && r.missing_tags.length > 0);
+                const invalidValueTags = rg.invalid_value_tags || [];
+                const nonCompliantResources = resources.filter(r => 
+                    (r.missing_tags && r.missing_tags.length > 0) ||
+                    (r.invalid_value_tags && r.invalid_value_tags.length > 0)
+                );
                 
                 gridHtml += `
                     <div class="resource-group-card">
@@ -1783,12 +1802,17 @@ HTML_TEMPLATE = '''
                         </div>
                         
                         ${missingTags.length > 0 ? 
-                            `<div class="tag-status missing">⚠️ RG Missing: ${missingTags.join(', ')}</div>` :
+                            `<div class="tag-status missing">⚠️ RG Missing Tags: ${missingTags.join(', ')}</div>` :
                             `<div class="tag-status present">✓ RG has all required tags</div>`
                         }
                         
+                        ${invalidValueTags.length > 0 ? 
+                            `<div class="tag-status missing">⚠️ RG Invalid Tag Values: ${invalidValueTags.map(t => t.tag_name + '=' + t.tag_value).join(', ')}</div>` :
+                            ''
+                        }
+                        
                         <div style="margin: 8px 0; font-size: 12px; color: var(--azure-dark-gray);">
-                            ${nonCompliantCount} of ${totalResources} resources missing tags
+                            ${nonCompliantCount} of ${totalResources} resources non-compliant
                         </div>
                         
                         ${nonCompliantResources.length > 0 ? `
@@ -1796,7 +1820,14 @@ HTML_TEMPLATE = '''
                                 ${nonCompliantResources.slice(0, 5).map(resource => `
                                     <div class="resource-item">
                                         <div class="resource-item-name">${resource.resource_name || 'Unknown'}</div>
-                                        <div class="resource-item-missing">Missing: ${(resource.missing_tags || []).join(', ')}</div>
+                                        ${resource.missing_tags && resource.missing_tags.length > 0 ? 
+                                            `<div class="resource-item-missing">Missing: ${resource.missing_tags.join(', ')}</div>` : 
+                                            ''
+                                        }
+                                        ${resource.invalid_value_tags && resource.invalid_value_tags.length > 0 ? 
+                                            `<div class="resource-item-missing">Invalid: ${resource.invalid_value_tags.map(t => t.tag_name + '=' + t.tag_value).join(', ')}</div>` : 
+                                            ''
+                                        }
                                     </div>
                                 `).join('')}
                                 ${nonCompliantResources.length > 5 ? 
