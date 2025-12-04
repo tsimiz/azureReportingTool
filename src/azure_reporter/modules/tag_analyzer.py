@@ -18,7 +18,8 @@ class TagAnalyzer:
         """
         self.required_tags = set(required_tags) if required_tags else set()
         # Normalize invalid values to lowercase for case-insensitive comparison
-        self.invalid_tag_values = set(v.lower() if v else "" for v in invalid_tag_values) if invalid_tag_values else set()
+        # Convert to string first to handle non-string values safely
+        self.invalid_tag_values = set(str(v).lower() if v is not None else "" for v in invalid_tag_values) if invalid_tag_values else set()
         logger.info(f"Tag analyzer initialized with {len(self.required_tags)} required tags and {len(self.invalid_tag_values)} invalid tag values")
 
     def _is_tag_value_valid(self, tag_value: Any) -> bool:

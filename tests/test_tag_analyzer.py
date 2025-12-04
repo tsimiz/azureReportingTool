@@ -326,9 +326,9 @@ class TestTagAnalyzerEdgeCases(unittest.TestCase):
     def test_calculate_resource_compliance_no_required_tags(self):
         """Test compliance calculation with no required tags."""
         analyzer = TagAnalyzer()  # No required tags
-        resource_tags = {'Environment', 'Owner'}
+        resource_tag_names = {'Environment', 'Owner'}
         
-        compliance = analyzer._calculate_resource_compliance(resource_tags, None)
+        compliance = analyzer._calculate_resource_compliance(resource_tag_names, None)
         
         # With no required tags, everything is 100% compliant
         self.assertEqual(compliance, 100.0)
