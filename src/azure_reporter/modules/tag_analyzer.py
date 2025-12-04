@@ -9,14 +9,35 @@ logger = logging.getLogger(__name__)
 class TagAnalyzer:
     """Analyzes Azure resource tags for compliance against required tags."""
 
-    def __init__(self, required_tags: Optional[List[str]] = None):
+    def __init__(self, required_tags: Optional[List[str]] = None, invalid_tag_values: Optional[List[str]] = None):
         """Initialize tag analyzer.
         
         Args:
             required_tags: List of tag names that are required on resources.
+            invalid_tag_values: List of tag values that should be flagged as invalid/non-compliant.
         """
         self.required_tags = set(required_tags) if required_tags else set()
-        logger.info(f"Tag analyzer initialized with {len(self.required_tags)} required tags")
+        # Normalize invalid values to lowercase for case-insensitive comparison
+        self.invalid_tag_values = set(v.lower() if v else "" for v in invalid_tag_values) if invalid_tag_values else set()
+        logger.info(f"Tag analyzer initialized with {len(self.required_tags)} required tags and {len(self.invalid_tag_values)} invalid tag values")
+
+    def _is_tag_value_valid(self, tag_value: Any) -> bool:
+        """Check if a tag value is valid (not in the invalid values list).
+        
+        Args:
+            tag_value: The tag value to check
+            
+        Returns:
+            True if value is valid, False if invalid
+        """
+        if not self.invalid_tag_values:
+            return True
+        
+        # Convert value to string and normalize to lowercase
+        value_str = str(tag_value) if tag_value is not None else ""
+        value_normalized = value_str.lower().strip()
+        
+        return value_normalized not in self.invalid_tag_values
 
     def analyze_resource_tags(self, resources: Dict[str, List[Dict[str, Any]]]) -> Dict[str, Any]:
         """Analyze tags across all resources.
@@ -54,12 +75,24 @@ class TagAnalyzer:
                 # Check resource group compliance
                 rg_missing_tags = list(self.required_tags - rg_tag_names) if self.required_tags else []
                 
+                # Check for invalid tag values on resource group required tags
+                rg_invalid_value_tags = []
+                for tag_name in self.required_tags:
+                    if tag_name in rg_tags:
+                        tag_value = rg_tags[tag_name]
+                        if not self._is_tag_value_valid(tag_value):
+                            rg_invalid_value_tags.append({
+                                'tag_name': tag_name,
+                                'tag_value': str(tag_value) if tag_value is not None else ""
+                            })
+                
                 resource_groups_info[rg_name] = {
                     'name': rg_name,
                     'tags': rg_tags,
                     'existing_tags': list(rg_tag_names),
                     'missing_tags': rg_missing_tags,
-                    'compliance_rate': self._calculate_resource_compliance(rg_tag_names),
+                    'invalid_value_tags': rg_invalid_value_tags,
+                    'compliance_rate': self._calculate_resource_compliance(rg_tag_names, rg_tags),
                     'resources': []
                 }
         
@@ -99,6 +132,17 @@ class TagAnalyzer:
                 resource_tag_names = set(resource_tags.keys())
                 missing = self.required_tags - resource_tag_names if self.required_tags else set()
                 
+                # Check for invalid tag values on required tags
+                invalid_value_tags = []
+                for tag_name in self.required_tags:
+                    if tag_name in resource_tags:
+                        tag_value = resource_tags[tag_name]
+                        if not self._is_tag_value_valid(tag_value):
+                            invalid_value_tags.append({
+                                'tag_name': tag_name,
+                                'tag_value': str(tag_value) if tag_value is not None else ""
+                            })
+                
                 resource_info = {
                     'resource_type': resource_type,
                     'resource_name': resource.get('name', 'Unknown'),
@@ -106,10 +150,11 @@ class TagAnalyzer:
                     'resource_group': resource_group_name,
                     'existing_tags': list(resource_tag_names),
                     'missing_tags': list(missing),
-                    'compliance_rate': self._calculate_resource_compliance(resource_tag_names)
+                    'invalid_value_tags': invalid_value_tags,
+                    'compliance_rate': self._calculate_resource_compliance(resource_tag_names, resource_tags)
                 }
                 
-                if missing:
+                if missing or invalid_value_tags:
                     missing_tags_by_resource.append(resource_info)
                 
                 # Add resource to its resource group
@@ -186,7 +231,8 @@ class TagAnalyzer:
             # Count non-compliant resources in this resource group
             non_compliant_count = sum(
                 1 for res in rg_info['resources'] 
-                if res.get('missing_tags') and len(res['missing_tags']) > 0
+                if (res.get('missing_tags') and len(res['missing_tags']) > 0) or
+                   (res.get('invalid_value_tags') and len(res['invalid_value_tags']) > 0)
             )
             
             summary.append({
@@ -194,6 +240,7 @@ class TagAnalyzer:
                 'tags': rg_info['tags'],
                 'existing_tags': rg_info['existing_tags'],
                 'missing_tags': rg_info['missing_tags'],
+                'invalid_value_tags': rg_info.get('invalid_value_tags', []),
                 'compliance_rate': rg_info['compliance_rate'],
                 'total_resources': len(rg_info['resources']),
                 'non_compliant_resources': non_compliant_count,
@@ -204,11 +251,12 @@ class TagAnalyzer:
         summary.sort(key=lambda x: x['compliance_rate'])
         return summary
 
-    def _calculate_resource_compliance(self, resource_tags: Set[str]) -> float:
+    def _calculate_resource_compliance(self, resource_tag_names: Set[str], resource_tags: Dict[str, Any] = None) -> float:
         """Calculate compliance rate for a single resource.
         
         Args:
-            resource_tags: Set of tag names on the resource
+            resource_tag_names: Set of tag names on the resource
+            resource_tags: Dictionary of tag names to values (optional, for value validation)
             
         Returns:
             Compliance rate as percentage (0-100)
@@ -216,8 +264,19 @@ class TagAnalyzer:
         if not self.required_tags:
             return 100.0
         
-        matching_tags = resource_tags & self.required_tags
-        return round(len(matching_tags) / len(self.required_tags) * 100, 1)
+        # Count tags that are present AND have valid values
+        compliant_tags = 0
+        for tag_name in self.required_tags:
+            if tag_name in resource_tag_names:
+                # If we have tag values, check if the value is valid
+                if resource_tags is not None:
+                    if self._is_tag_value_valid(resource_tags.get(tag_name)):
+                        compliant_tags += 1
+                else:
+                    # If no tag values provided, just check presence
+                    compliant_tags += 1
+        
+        return round(compliant_tags / len(self.required_tags) * 100, 1)
 
     def _calculate_overall_compliance(
         self, 
@@ -329,6 +388,31 @@ class TagAnalyzer:
                 'severity': severity,
                 'issue': f"Required tag '{tag_name}' is missing from {count} resources ({pct}%)",
                 'recommendation': f"Apply the '{tag_name}' tag to all resources to improve compliance"
+            })
+        
+        # Group invalid tag values by tag name
+        invalid_value_gaps: Dict[str, int] = {}
+        for resource in missing_tags_by_resource:
+            for invalid_tag in resource.get('invalid_value_tags', []):
+                tag_name = invalid_tag['tag_name']
+                invalid_value_gaps[tag_name] = invalid_value_gaps.get(tag_name, 0) + 1
+        
+        # Report on most common invalid tag values
+        for tag_name, count in sorted(invalid_value_gaps.items(), key=lambda x: -x[1])[:5]:
+            pct = round(count / total_resources * 100, 1) if total_resources > 0 else 0
+            if pct > 50:
+                severity = 'high'
+            elif pct > 25:
+                severity = 'medium'
+            else:
+                severity = 'low'
+                
+            findings.append({
+                'resource': f"Tag: {tag_name}",
+                'category': 'tagging',
+                'severity': severity,
+                'issue': f"Required tag '{tag_name}' has invalid/non-compliant values on {count} resources ({pct}%)",
+                'recommendation': f"Update the '{tag_name}' tag values to valid, meaningful values for proper compliance"
             })
         
         return findings

@@ -2444,8 +2444,9 @@ def api_run_analysis():
         if tag_config.get('enabled', False):
             logger.info("Running tag analysis...")
             required_tags = tag_config.get('required_tags', [])
+            invalid_tag_values = tag_config.get('invalid_tag_values', [])
             
-            tag_analyzer = TagAnalyzer(required_tags=required_tags)
+            tag_analyzer = TagAnalyzer(required_tags=required_tags, invalid_tag_values=invalid_tag_values)
             tag_analysis = tag_analyzer.analyze_resource_tags(resources)
             analyses['tag_analysis'] = tag_analysis
             

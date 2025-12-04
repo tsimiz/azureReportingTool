@@ -39,6 +39,17 @@ tag_analysis:
     - Owner
     - CostCenter
     - Project
+  # List of tag values that should be flagged as invalid/non-compliant
+  # Resources with these tag values will be marked as non-compliant
+  # even if the tag itself exists (case-insensitive comparison)
+  invalid_tag_values:
+    - none
+    - na
+    - n/a
+    - ""  # empty string
+    - tbd
+    - todo
+    - unknown
 
 # Cost analysis settings
 # Analyzes resources for cost optimization opportunities
