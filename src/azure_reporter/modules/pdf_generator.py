@@ -12,6 +12,8 @@ MAX_FINDINGS_PER_SECTION = 10
 MAX_BEST_PRACTICES_PER_SECTION = 7
 MAX_ISSUE_TEXT_LENGTH = 80
 MAX_RECOMMENDATION_TEXT_LENGTH = 150
+MAX_RESOURCE_GROUPS_IN_PDF = 10
+MAX_RESOURCES_PER_GROUP_IN_PDF = 3
 
 
 class AzureReportPDF(FPDF):
@@ -205,6 +207,83 @@ class PDFGenerator:
                     self.pdf.multi_cell(0, 5, f"  Recommendation: {recommendation[:MAX_RECOMMENDATION_TEXT_LENGTH]}")
                     self.pdf.ln(2)
         
+        # Resource groups tag compliance
+        resource_groups_details = tag_analysis.get('resource_groups_details', [])
+        if resource_groups_details:
+            # Check if we need a new page
+            if self.pdf.get_y() > 200:
+                self.pdf.add_page()
+            
+            self.pdf.set_font('Helvetica', 'B', 14)
+            self.pdf.set_text_color(0, 51, 102)
+            self.pdf.cell(0, 12, "Tag Compliance by Resource Group", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            self.pdf.ln(2)
+            
+            # Show first N resource groups
+            for rg in resource_groups_details[:MAX_RESOURCE_GROUPS_IN_PDF]:
+                # Check if we need a new page
+                if self.pdf.get_y() > 240:
+                    self.pdf.add_page()
+                
+                rg_name = rg.get('name', 'Unknown')
+                rg_compliance = rg.get('compliance_rate', 0)
+                rg_missing_tags = rg.get('missing_tags', [])
+                non_compliant_resources = rg.get('non_compliant_resources', 0)
+                total_resources = rg.get('total_resources', 0)
+                resources = rg.get('resources', [])
+                
+                # Resource group name
+                self.pdf.set_font('Helvetica', 'B', 11)
+                if rg_compliance >= 90:
+                    self.pdf.set_text_color(0, 128, 0)
+                elif rg_compliance >= 70:
+                    self.pdf.set_text_color(255, 140, 0)
+                else:
+                    self.pdf.set_text_color(255, 0, 0)
+                
+                self.pdf.cell(0, 8, f"{rg_name} - {rg_compliance}% compliant", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                
+                # Resource group tags status
+                self.pdf.set_font('Helvetica', '', 9)
+                if rg_missing_tags:
+                    self.pdf.set_text_color(255, 0, 0)
+                    missing_str = ', '.join(rg_missing_tags)
+                    self.pdf.cell(0, 6, f"  RG Missing Tags: {missing_str}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                else:
+                    self.pdf.set_text_color(0, 128, 0)
+                    self.pdf.cell(0, 6, "  RG Tags: All required tags present", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                
+                # Resource summary
+                self.pdf.set_text_color(100, 100, 100)
+                self.pdf.cell(0, 6, f"  Resources: {non_compliant_resources} of {total_resources} missing tags", 
+                             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                
+                # Show first N non-compliant resources in this group
+                non_compliant_in_rg = [r for r in resources if r.get('missing_tags')]
+                if non_compliant_in_rg:
+                    self.pdf.set_font('Helvetica', '', 8)
+                    self.pdf.set_text_color(0, 0, 0)
+                    for resource in non_compliant_in_rg[:MAX_RESOURCES_PER_GROUP_IN_PDF]:
+                        resource_name = resource.get('resource_name', 'Unknown')
+                        missing = resource.get('missing_tags', [])
+                        missing_str = ', '.join(missing[:3])
+                        if len(missing) > 3:
+                            missing_str += f" (+{len(missing) - MAX_RESOURCES_PER_GROUP_IN_PDF})"
+                        self.pdf.cell(0, 5, f"    - {resource_name}: Missing {missing_str}", 
+                                     new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                    if len(non_compliant_in_rg) > MAX_RESOURCES_PER_GROUP_IN_PDF:
+                        self.pdf.set_text_color(100, 100, 100)
+                        self.pdf.cell(0, 5, f"    ... and {len(non_compliant_in_rg) - MAX_RESOURCES_PER_GROUP_IN_PDF} more resources", 
+                                     new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                
+                self.pdf.ln(2)
+            
+            if len(resource_groups_details) > MAX_RESOURCE_GROUPS_IN_PDF:
+                self.pdf.set_font('Helvetica', 'I', 9)
+                self.pdf.set_text_color(100, 100, 100)
+                self.pdf.cell(0, 6, f"... and {len(resource_groups_details) - MAX_RESOURCE_GROUPS_IN_PDF} more resource groups", 
+                             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        
         # Non-compliant resources (show first 10)
         non_compliant = tag_analysis.get('non_compliant_resources', [])
         if non_compliant:
@@ -214,7 +293,7 @@ class PDFGenerator:
             
             self.pdf.set_font('Helvetica', 'B', 14)
             self.pdf.set_text_color(0, 51, 102)
-            self.pdf.cell(0, 12, f"Non-Compliant Resources (showing {min(10, len(non_compliant))} of {len(non_compliant)})", 
+            self.pdf.cell(0, 12, f"All Non-Compliant Resources (showing {min(10, len(non_compliant))} of {len(non_compliant)})", 
                          new_x=XPos.LMARGIN, new_y=YPos.NEXT)
             self.pdf.ln(2)
             
@@ -224,6 +303,7 @@ class PDFGenerator:
             for resource in non_compliant[:10]:
                 resource_name = resource.get('resource_name', 'Unknown')
                 resource_type = resource.get('resource_type', 'Unknown')
+                resource_group = resource.get('resource_group', 'N/A')
                 missing = resource.get('missing_tags', [])
                 compliance = resource.get('compliance_rate', 0)
                 
@@ -232,6 +312,8 @@ class PDFGenerator:
                 
                 self.pdf.set_font('Helvetica', '', 8)
                 self.pdf.set_text_color(100, 100, 100)
+                self.pdf.cell(0, 5, f"    Resource Group: {resource_group}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                
                 missing_str = ', '.join(missing[:5])
                 if len(missing) > 5:
                     missing_str += f" (+{len(missing) - 5} more)"

@@ -760,6 +760,96 @@ HTML_TEMPLATE = '''
             font-size: 14px;
         }
         
+        /* Tag Compliance Styles */
+        .tag-compliance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin: 16px 0;
+        }
+        
+        .resource-group-card {
+            border: 1px solid var(--azure-border);
+            border-radius: 8px;
+            padding: 16px;
+            background: white;
+        }
+        
+        .resource-group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--azure-border);
+        }
+        
+        .resource-group-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--azure-dark-blue);
+        }
+        
+        .compliance-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .compliance-badge.high {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .compliance-badge.medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .compliance-badge.low {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .tag-status {
+            font-size: 12px;
+            margin: 8px 0;
+        }
+        
+        .tag-status.missing {
+            color: var(--azure-error);
+        }
+        
+        .tag-status.present {
+            color: var(--azure-success);
+        }
+        
+        .resource-list {
+            margin-top: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .resource-item {
+            padding: 8px;
+            margin: 4px 0;
+            background: var(--azure-gray);
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .resource-item-name {
+            font-weight: 500;
+            color: var(--azure-dark-gray);
+        }
+        
+        .resource-item-missing {
+            color: var(--azure-error);
+            font-size: 11px;
+            margin-top: 4px;
+        }
+        
         /* Christmas Theme Toggle Button */
         .christmas-toggle {
             background: none;
@@ -1224,6 +1314,24 @@ HTML_TEMPLATE = '''
             </div>
         </div>
 
+        <!-- Tag Compliance Section -->
+        <div class="card hidden" id="tagComplianceCard">
+            <div class="card-header">
+                <div class="card-header-icon">🏷️</div>
+                Tag Compliance Details
+            </div>
+            <div class="card-body">
+                <div class="tag-compliance-summary" id="tagComplianceSummary">
+                    <!-- Tag compliance summary will be populated dynamically -->
+                </div>
+                
+                <h4 style="margin: 16px 0 12px; font-size: 14px; font-weight: 600;">Resources Grouped by Resource Group</h4>
+                <div class="tag-compliance-grid" id="tagComplianceGrid">
+                    <!-- Resource group cards will be populated dynamically -->
+                </div>
+            </div>
+        </div>
+
         <!-- Improvement Backlog -->
         <div class="card hidden" id="backlogCard">
             <div class="card-header">
@@ -1603,11 +1711,110 @@ HTML_TEMPLATE = '''
             
             reportPreview.innerHTML = findingsHtml;
             
+            // Display tag compliance if available
+            if (analyses.tag_analysis) {
+                displayTagCompliance(analyses.tag_analysis);
+                document.getElementById('tagComplianceCard').classList.remove('hidden');
+            }
+            
             // Display backlog if available
             if (result.backlog && result.backlog.length > 0) {
                 displayBacklog(result.backlog);
                 document.getElementById('backlogCard').classList.remove('hidden');
             }
+        }
+        
+        function displayTagCompliance(tagAnalysis) {
+            const summary = tagAnalysis.summary || {};
+            const resourceGroupsDetails = tagAnalysis.resource_groups_details || [];
+            
+            // Display summary
+            const summaryDiv = document.getElementById('tagComplianceSummary');
+            const complianceRate = summary.overall_compliance_rate || 0;
+            const complianceClass = complianceRate >= 90 ? 'high' : (complianceRate >= 70 ? 'medium' : 'low');
+            
+            summaryDiv.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                    <div>
+                        <div style="font-size: 32px; font-weight: 700; color: ${complianceRate >= 90 ? 'var(--azure-success)' : (complianceRate >= 70 ? 'var(--azure-warning)' : 'var(--azure-error)')};">
+                            ${complianceRate}%
+                        </div>
+                        <div style="font-size: 14px; color: var(--azure-dark-gray);">Overall Compliance</div>
+                    </div>
+                    <div style="flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+                        <div>
+                            <div style="font-size: 18px; font-weight: 600;">${summary.total_resources || 0}</div>
+                            <div style="font-size: 12px; color: var(--azure-dark-gray);">Total Resources</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 18px; font-weight: 600;">${summary.total_resource_groups || 0}</div>
+                            <div style="font-size: 12px; color: var(--azure-dark-gray);">Resource Groups</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 18px; font-weight: 600;">${summary.required_tags_count || 0}</div>
+                            <div style="font-size: 12px; color: var(--azure-dark-gray);">Required Tags</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 18px; font-weight: 600; color: var(--azure-error);">${summary.resources_without_tags || 0}</div>
+                            <div style="font-size: 12px; color: var(--azure-dark-gray);">Without Any Tags</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Display resource groups
+            const grid = document.getElementById('tagComplianceGrid');
+            let gridHtml = '';
+            
+            for (const rg of resourceGroupsDetails) {
+                const rgCompliance = rg.compliance_rate || 0;
+                const rgComplianceClass = rgCompliance >= 90 ? 'high' : (rgCompliance >= 70 ? 'medium' : 'low');
+                const missingTags = rg.missing_tags || [];
+                const nonCompliantCount = rg.non_compliant_resources || 0;
+                const totalResources = rg.total_resources || 0;
+                const resources = rg.resources || [];
+                const nonCompliantResources = resources.filter(r => r.missing_tags && r.missing_tags.length > 0);
+                
+                gridHtml += `
+                    <div class="resource-group-card">
+                        <div class="resource-group-header">
+                            <div class="resource-group-name">${rg.name || 'Unknown'}</div>
+                            <div class="compliance-badge ${rgComplianceClass}">${rgCompliance}%</div>
+                        </div>
+                        
+                        ${missingTags.length > 0 ? 
+                            `<div class="tag-status missing">⚠️ RG Missing: ${missingTags.join(', ')}</div>` :
+                            `<div class="tag-status present">✓ RG has all required tags</div>`
+                        }
+                        
+                        <div style="margin: 8px 0; font-size: 12px; color: var(--azure-dark-gray);">
+                            ${nonCompliantCount} of ${totalResources} resources missing tags
+                        </div>
+                        
+                        ${nonCompliantResources.length > 0 ? `
+                            <div class="resource-list">
+                                ${nonCompliantResources.slice(0, 5).map(resource => `
+                                    <div class="resource-item">
+                                        <div class="resource-item-name">${resource.resource_name || 'Unknown'}</div>
+                                        <div class="resource-item-missing">Missing: ${(resource.missing_tags || []).join(', ')}</div>
+                                    </div>
+                                `).join('')}
+                                ${nonCompliantResources.length > 5 ? 
+                                    `<div style="text-align: center; font-size: 11px; color: var(--azure-dark-gray); margin-top: 8px;">
+                                        ... and ${nonCompliantResources.length - 5} more resources
+                                    </div>` : ''
+                                }
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+            
+            if (!gridHtml) {
+                gridHtml = '<p style="color: var(--azure-dark-gray);">No resource groups found or tag analysis not enabled.</p>';
+            }
+            
+            grid.innerHTML = gridHtml;
         }
         
         function displayBacklog(items) {
