@@ -255,26 +255,78 @@ class PDFGenerator:
                 
                 # Resource summary
                 self.pdf.set_text_color(100, 100, 100)
-                self.pdf.cell(0, 6, f"  Resources: {non_compliant_resources} of {total_resources} missing tags", 
+                self.pdf.cell(0, 6, f"  Resources: {non_compliant_resources} of {total_resources} non-compliant", 
                              new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                 
-                # Show first N non-compliant resources in this group
-                non_compliant_in_rg = [r for r in resources if r.get('missing_tags')]
-                if non_compliant_in_rg:
+                # Show all resources in this group (already sorted: non-compliant first, then compliant)
+                if resources:
                     self.pdf.set_font('Helvetica', '', 8)
-                    self.pdf.set_text_color(0, 0, 0)
-                    for resource in non_compliant_in_rg[:MAX_RESOURCES_PER_GROUP_IN_PDF]:
+                    
+                    # Show up to MAX_RESOURCES_PER_GROUP_IN_PDF*2 resources to include both non-compliant and compliant
+                    max_to_show = min(len(resources), MAX_RESOURCES_PER_GROUP_IN_PDF * 2)
+                    
+                    for resource in resources[:max_to_show]:
+                        # Check if we need a new page
+                        if self.pdf.get_y() > 260:
+                            self.pdf.add_page()
+                        
                         resource_name = resource.get('resource_name', 'Unknown')
+                        resource_type = resource.get('resource_type', 'Unknown')
+                        compliance = resource.get('compliance_rate', 0)
+                        tags = resource.get('tags', {})
                         missing = resource.get('missing_tags', [])
-                        missing_str = ', '.join(missing[:3])
-                        if len(missing) > 3:
-                            missing_str += f" (+{len(missing) - MAX_RESOURCES_PER_GROUP_IN_PDF})"
-                        self.pdf.cell(0, 5, f"    - {resource_name}: Missing {missing_str}", 
+                        invalid_value_tags = resource.get('invalid_value_tags', [])
+                        
+                        # Color code based on compliance
+                        if compliance == 100.0:
+                            status_icon = "✓"
+                            self.pdf.set_text_color(0, 128, 0)  # Green
+                        else:
+                            status_icon = "✗"
+                            self.pdf.set_text_color(255, 0, 0)  # Red
+                        
+                        # Resource name with status
+                        self.pdf.cell(0, 5, f"    {status_icon} {resource_name} ({resource_type})", 
                                      new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-                    if len(non_compliant_in_rg) > MAX_RESOURCES_PER_GROUP_IN_PDF:
+                        
+                        # Show tags
+                        self.pdf.set_text_color(0, 0, 0)
+                        if tags:
+                            tags_str = ", ".join([f"{k}={v}" for k, v in list(tags.items())[:3]])
+                            if len(tags) > 3:
+                                tags_str += f" (+{len(tags) - 3} more)"
+                            self.pdf.cell(0, 4, f"      Tags: {tags_str}", 
+                                         new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                        else:
+                            self.pdf.set_text_color(255, 0, 0)
+                            self.pdf.cell(0, 4, "      Tags: None", 
+                                         new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                            self.pdf.set_text_color(0, 0, 0)
+                        
+                        # Show issues if any
+                        if missing:
+                            self.pdf.set_text_color(255, 0, 0)
+                            missing_str = ', '.join(missing[:3])
+                            if len(missing) > 3:
+                                missing_str += f" (+{len(missing) - 3} more)"
+                            self.pdf.cell(0, 4, f"      Missing: {missing_str}", 
+                                         new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                            self.pdf.set_text_color(0, 0, 0)
+                        
+                        if invalid_value_tags:
+                            self.pdf.set_text_color(255, 0, 0)
+                            invalid_str = ", ".join([f"{t['tag_name']}={t['tag_value']}" for t in invalid_value_tags[:2]])
+                            if len(invalid_value_tags) > 2:
+                                invalid_str += f" (+{len(invalid_value_tags) - 2} more)"
+                            self.pdf.cell(0, 4, f"      Invalid: {invalid_str}", 
+                                         new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                            self.pdf.set_text_color(0, 0, 0)
+                    
+                    if len(resources) > max_to_show:
                         self.pdf.set_text_color(100, 100, 100)
-                        self.pdf.cell(0, 5, f"    ... and {len(non_compliant_in_rg) - MAX_RESOURCES_PER_GROUP_IN_PDF} more resources", 
+                        self.pdf.cell(0, 5, f"    ... and {len(resources) - max_to_show} more resources", 
                                      new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                        self.pdf.set_text_color(0, 0, 0)
                 
                 self.pdf.ln(2)
             
