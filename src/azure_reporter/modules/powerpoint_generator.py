@@ -9,6 +9,10 @@ from pptx.dml.color import RGBColor
 
 logger = logging.getLogger(__name__)
 
+# Constants for content limits
+MAX_REQUIRED_TAGS_PER_SLIDE = 5
+MAX_RESOURCE_GROUPS_PER_SLIDE = 5
+
 
 class PowerPointGenerator:
     """Generates PowerPoint presentations from Azure analysis results."""
@@ -385,7 +389,7 @@ class PowerPointGenerator:
             p.font.size = Pt(14)
             p.font.bold = True
             
-            for tag_info in required_tags[:5]:  # Top 5 required tags
+            for tag_info in required_tags[:MAX_REQUIRED_TAGS_PER_SLIDE]:
                 tag_name = tag_info.get('tag_name', 'Unknown')
                 tag_compliance = tag_info.get('compliance_percentage', 0)
                 
@@ -409,13 +413,13 @@ class PowerPointGenerator:
         if not resource_groups_details:
             return
         
-        # Create multiple slides if needed (max 5 resource groups per slide)
-        for slide_num, i in enumerate(range(0, len(resource_groups_details), 5)):
+        # Create multiple slides if needed
+        for slide_num, i in enumerate(range(0, len(resource_groups_details), MAX_RESOURCE_GROUPS_PER_SLIDE)):
             slide_layout = self.prs.slide_layouts[1]
             slide = self.prs.slides.add_slide(slide_layout)
             
             title = slide.shapes.title
-            if len(resource_groups_details) > 5:
+            if len(resource_groups_details) > MAX_RESOURCE_GROUPS_PER_SLIDE:
                 title.text = f"Tag Compliance by Resource Group ({slide_num + 1})"
             else:
                 title.text = "Tag Compliance by Resource Group"
@@ -424,7 +428,7 @@ class PowerPointGenerator:
             text_frame = content.text_frame
             text_frame.clear()
             
-            rg_slice = resource_groups_details[i:i+5]
+            rg_slice = resource_groups_details[i:i+MAX_RESOURCE_GROUPS_PER_SLIDE]
             first = True
             
             for rg in rg_slice:
