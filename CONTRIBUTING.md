@@ -38,7 +38,7 @@ Include:
 
 ```bash
 # Required
-.NET 8.0 SDK
+.NET 10 SDK
 Node.js 18+
 Azure CLI
 Git

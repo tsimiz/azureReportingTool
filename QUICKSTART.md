@@ -6,7 +6,7 @@ This guide will help you get the Azure Reporting Tool up and running in minutes.
 
 Before you begin, ensure you have:
 
-- ✅ [.NET 8.0 SDK](https://dotnet.microsoft.com/download)
+- ✅ [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - ✅ [Node.js 18+](https://nodejs.org/)
 - ✅ [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
 - ✅ Azure subscription with appropriate permissions
