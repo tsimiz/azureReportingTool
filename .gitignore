@@ -146,5 +146,4 @@ storybook-static/
 *.suo
 *.ntvs*
 *.njsproj
-*.sln
 *.sw?
