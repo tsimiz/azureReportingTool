@@ -18,7 +18,7 @@
 
 ## 🚀 Overview
 
-The **Azure Reporting Tool** is a cutting-edge solution built with **.NET 8.0** backend and **React with TypeScript** frontend, designed to automatically generate comprehensive reports and analysis of Azure environments against Microsoft's best practices.
+The **Azure Reporting Tool** is a cutting-edge solution built with **.NET 10** backend and **React with TypeScript** frontend, designed to automatically generate comprehensive reports and analysis of Azure environments against Microsoft's best practices.
 
 ### ✨ What's New
 
@@ -64,7 +64,7 @@ The **Azure Reporting Tool** is a cutting-edge solution built with **.NET 8.0** 
 
 ## 🛠️ Technology Stack
 
-### Backend (.NET 8.0)
+### Backend (.NET 10)
 ```
 ├── ASP.NET Core Web API
 ├── Azure SDK for .NET
@@ -86,7 +86,7 @@ The **Azure Reporting Tool** is a cutting-edge solution built with **.NET 8.0** 
 ## 📋 Prerequisites
 
 ### Required
-- ✅ **.NET 8.0 SDK** or higher
+- ✅ **.NET 10 SDK** or higher
 - ✅ **Node.js 18+** and **npm**
 - ✅ **Azure subscription** with appropriate permissions
 - ✅ **Azure CLI** (for authentication)
@@ -341,7 +341,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
 
-**Built with ❤️ using .NET 8.0 & React**
+**Built with ❤️ using .NET 10 & React**
 
 ⭐ **Star us on GitHub!** ⭐
 

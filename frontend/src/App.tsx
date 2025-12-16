@@ -346,7 +346,7 @@ function App() {
 
       <Box component="footer" sx={{ py: 3, px: 2, mt: 'auto', backgroundColor: '#f5f5f5', textAlign: 'center' }}>
         <Typography variant="body2" color="text.secondary">
-          Azure Reporting Tool | Powered by .NET 8.0 & React with TypeScript ⚡
+          Azure Reporting Tool | Powered by .NET 10 & React with TypeScript ⚡
         </Typography>
       </Box>
     </Box>

@@ -3,13 +3,13 @@
 ## Overview
 
 Successfully migrated the Azure Reporting Tool from Python to a modern technology stack:
-- **Backend**: .NET 8.0 with ASP.NET Core Web API
+- **Backend**: .NET 10 with ASP.NET Core Web API
 - **Frontend**: React 18+ with TypeScript and Material-UI
 
 ## ✅ Completed Tasks
 
 ### Backend Development
-- [x] Created .NET 8.0 solution structure
+- [x] Created .NET 10 solution structure
 - [x] Implemented Azure resource fetching service
 - [x] Built analysis service with tag compliance and cost analysis
 - [x] Created REST API controllers
