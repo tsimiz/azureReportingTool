@@ -1,175 +1,122 @@
-# Quick Start Guide
+# 🚀 Quick Start Guide
 
-Get started with Azure Reporting Tool in 5 minutes!
+This guide will help you get the Azure Reporting Tool up and running in minutes.
 
-## Prerequisites
+## 📋 Prerequisites
 
-- Python 3.8+ installed
-- Azure subscription
-- OpenAI API key OR Azure AI Foundry (Azure OpenAI Service) endpoint
+Before you begin, ensure you have:
 
-## Step 1: Install Dependencies
+- ✅ [.NET 8.0 SDK](https://dotnet.microsoft.com/download)
+- ✅ [Node.js 18+](https://nodejs.org/)
+- ✅ [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
+- ✅ Azure subscription with appropriate permissions
+
+## ⚡ 5-Minute Setup
+
+### 1️⃣ Clone and Navigate
 
 ```bash
-# Clone the repository
 git clone https://github.com/tsimiz/azureReportingTool.git
 cd azureReportingTool
-
-# Create virtual environment (recommended)
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
 ```
 
-## Step 2: Configure Azure Access
-
-### Create Azure Service Principal
+### 2️⃣ Start Backend (Terminal 1)
 
 ```bash
-# Login to Azure
+cd backend/AzureReportingTool.Api
+dotnet run
+```
+
+Backend will start on: `http://localhost:5000`
+
+### 3️⃣ Start Frontend (Terminal 2)
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend will start on: `http://localhost:5173`
+
+### 4️⃣ Login to Azure
+
+```bash
 az login
-
-# Create service principal
-az ad sp create-for-rbac --name "AzureReportingTool" --role Reader --scopes /subscriptions/YOUR_SUBSCRIPTION_ID
 ```
 
-This will output:
-```json
-{
-  "appId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-  "displayName": "AzureReportingTool",
-  "password": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  "tenant": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-}
-```
+### 5️⃣ Open Browser
 
-### Get Subscription ID
+Navigate to `http://localhost:5173` and start analyzing!
 
-```bash
-az account show --query id -o tsv
-```
+## 🔧 Configuration
 
-## Step 3: Configure Environment
+### Environment Variables (Optional)
 
-```bash
-# Copy the example environment file
-cp .env.example .env
-
-# Edit .env with your favorite editor
-nano .env  # or vim, code, etc.
-```
-
-Add your credentials to `.env`:
-
-**Option A: Using OpenAI API**
+Create `.env` file in project root:
 
 ```env
-AZURE_TENANT_ID=<tenant from service principal output>
-AZURE_CLIENT_ID=<appId from service principal output>
-AZURE_CLIENT_SECRET=<password from service principal output>
-AZURE_SUBSCRIPTION_ID=<your subscription id>
+# Azure Configuration
+AZURE_SUBSCRIPTION_ID=your-subscription-id
 
-OPENAI_API_KEY=<your OpenAI API key>
+# OpenAI Configuration (Option A)
+OPENAI_API_KEY=sk-proj-xxxxx
 OPENAI_MODEL=gpt-4
+
+# Azure OpenAI Configuration (Option B)
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+AZURE_OPENAI_KEY=your-key
+AZURE_OPENAI_DEPLOYMENT=gpt-4-deployment
 ```
 
-**Option B: Using Azure AI Foundry (Azure OpenAI)**
+## 🐛 Troubleshooting
 
-```env
-AZURE_TENANT_ID=<tenant from service principal output>
-AZURE_CLIENT_ID=<appId from service principal output>
-AZURE_CLIENT_SECRET=<password from service principal output>
-AZURE_SUBSCRIPTION_ID=<your subscription id>
+### Backend Issues
 
-# Azure AI Foundry / Azure OpenAI Service
-AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com/
-AZURE_OPENAI_KEY=<your Azure OpenAI key>
-AZURE_OPENAI_DEPLOYMENT=<your deployment name>
-```
-
-See [README.md](README.md) for detailed instructions on setting up Azure AI Foundry.
-
-## Step 4: Run the Tool
-
+**Port Already in Use:**
 ```bash
-python -m azure_reporter.main
+# Change port in Properties/launchSettings.json
+"applicationUrl": "http://localhost:5001"
 ```
 
-Or use the example script:
-
+**Azure Authentication Failed:**
 ```bash
-python example_usage.py
+# Re-login to Azure
+az login
+az account show
 ```
 
-## Step 5: View Results
+### Frontend Issues
 
-Check the `output/` directory for:
-- `azure_report.pptx` - PowerPoint presentation
-- `improvement_backlog.csv` - Improvement items in CSV
-- `improvement_backlog.json` - Backlog in JSON format
-- `improvement_backlog.md` - Human-readable backlog
-
-**Note**: The tool now analyzes **ALL resources** in your subscription, not just specific types like VMs and Storage Accounts. This means you'll get comprehensive coverage of your entire Azure environment!
-
-## Customizing the Report
-
-To customize settings:
-
+**Port Already in Use:**
 ```bash
-# Copy example configuration
-cp config.example.yaml config.yaml
-
-# Edit configuration
-nano config.yaml
-
-# Run with custom config
-python -m azure_reporter.main --config config.yaml
+# Use different port
+npm run dev -- --port 3000
 ```
 
-## Troubleshooting
+**API Connection Failed:**
+- Check backend is running on `http://localhost:5000`
+- Update `API_BASE_URL` in `frontend/src/App.tsx` if needed
 
-### "Authentication failed"
+## 📚 Next Steps
 
-- Verify credentials in `.env` file
-- Ensure Service Principal has Reader role
-- Try: `az login` to verify Azure access
+- [Full Documentation](README.md)
+- [API Documentation](backend/README.md)
+- [Frontend Documentation](frontend/README.md)
+- [Contributing Guide](CONTRIBUTING.md)
 
-### "No resources found"
+## 💡 Tips
 
-- Check that resources exist in the subscription
-- Verify Service Principal has access to resource groups
-- Check the subscription ID is correct
+- Use `dotnet watch run` in backend for hot reload
+- Frontend supports hot module replacement by default
+- Add `--verbose` flag for detailed logging
 
-### "OpenAI API error" or "Azure OpenAI error"
+## 🆘 Getting Help
 
-**For OpenAI API:**
-- Verify OpenAI API key is valid
-- Check you have API credits
-- Try using gpt-3.5-turbo instead of gpt-4 in `.env`
+- 📖 Check [README.md](README.md)
+- 💬 Open an [Issue](https://github.com/tsimiz/azureReportingTool/issues)
+- 📧 Contact maintainers
 
-**For Azure AI Foundry:**
-- Verify your Azure OpenAI endpoint and key are correct
-- Check that your deployment name matches what's in Azure portal
-- Ensure your Azure OpenAI resource is active and has quota available
+---
 
-## Next Steps
-
-- Review the generated PowerPoint report
-- Check the improvement backlog
-- Prioritize critical and high-severity findings
-- See [README.md](README.md) for detailed documentation
-
-## Getting Help
-
-- Check [README.md](README.md) for full documentation
-- Review example configuration in `config.example.yaml`
-- Open an issue on GitHub for bugs or questions
-
-## Security Notes
-
-- Never commit `.env` file to version control
-- Store credentials securely
-- Use principle of least privilege for Service Principal
-- Rotate credentials regularly
+**Ready to analyze your Azure environment? Let's go! 🚀**

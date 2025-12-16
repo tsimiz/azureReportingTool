@@ -1,191 +1,305 @@
-# Contributing to Azure Reporting Tool
+# 🤝 Contributing to Azure Reporting Tool
 
-Thank you for your interest in contributing to the Azure Reporting Tool! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing! This guide will help you get started.
 
-## Code of Conduct
+## 📋 Code of Conduct
 
-Be respectful and inclusive. We're all here to build something useful together.
+Be respectful, inclusive, and collaborative. We're building something great together! 🚀
 
-## How to Contribute
+## 🐛 Reporting Issues
 
-### Reporting Issues
+### Before Creating an Issue
 
-1. Check if the issue already exists
-2. Use the issue template if available
-3. Provide detailed information:
-   - Python version
-   - Operating system
-   - Error messages and logs
-   - Steps to reproduce
+- 🔍 Search existing issues to avoid duplicates
+- ✅ Use the latest version of the tool
+- 📝 Gather relevant information
 
-### Suggesting Enhancements
+### Creating an Issue
+
+Include:
+- 🖥️ **Environment**: .NET version, Node.js version, OS
+- 🔢 **Version**: Tool version
+- 📊 **Error Messages**: Full error logs
+- 🔄 **Steps to Reproduce**: Detailed steps
+- 🎯 **Expected Behavior**: What should happen
+- 💥 **Actual Behavior**: What actually happens
+
+## 💡 Suggesting Enhancements
 
 1. Open an issue with the "enhancement" label
-2. Describe the feature and its benefits
-3. Provide examples of how it would work
+2. Describe the feature clearly
+3. Explain the benefits
+4. Provide use case examples
+5. Consider implementation details
 
-### Contributing Code
+## 🛠️ Development Setup
 
-1. **Fork the repository**
-
-2. **Create a feature branch**
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-3. **Make your changes**
-   - Follow the existing code style
-   - Add docstrings to functions and classes
-   - Keep functions focused and small
-   - Add comments for complex logic
-
-4. **Test your changes**
-   - Ensure existing functionality still works
-   - Test with real Azure resources if possible
-   - Verify the generated reports
-
-5. **Commit your changes**
-   ```bash
-   git add .
-   git commit -m "Add: brief description of changes"
-   ```
-
-6. **Push to your fork**
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-
-7. **Open a Pull Request**
-   - Describe what changes you made and why
-   - Reference any related issues
-   - Wait for review and address feedback
-
-## Development Setup
+### Prerequisites
 
 ```bash
-# Clone your fork
+# Required
+.NET 8.0 SDK
+Node.js 18+
+Azure CLI
+Git
+
+# Optional
+Docker Desktop
+```
+
+### Getting Started
+
+```bash
+# 1. Fork and clone
 git clone https://github.com/YOUR_USERNAME/azureReportingTool.git
 cd azureReportingTool
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate
+# 2. Create feature branch
+git checkout -b feature/amazing-feature
 
-# Install in development mode
-pip install -e .
+# 3. Setup backend
+cd backend
+dotnet restore
+dotnet build
 
-# Install development dependencies (if added)
-pip install -r requirements-dev.txt
+# 4. Setup frontend
+cd ../frontend
+npm install
+
+# 5. Run tests
+cd ../backend
+dotnet test
+
+cd ../frontend
+npm test
 ```
 
-## Code Style Guidelines
+## 📝 Code Style
 
-- Follow PEP 8 style guide
-- Use meaningful variable and function names
-- Add type hints where appropriate
-- Keep lines under 100 characters when reasonable
-- Use docstrings for all public functions and classes
+### Backend (.NET)
 
-### Example Function
-
-```python
-def analyze_resource(resource_data: Dict[str, Any], 
-                     best_practices: List[str]) -> Dict[str, Any]:
-    """Analyze a resource against best practices.
+```csharp
+// Use C# naming conventions
+public class MyService 
+{
+    // PascalCase for properties
+    public string PropertyName { get; set; }
     
-    Args:
-        resource_data: Dictionary containing resource information
-        best_practices: List of best practices to check against
-        
-    Returns:
-        Dictionary with analysis results including findings and score
-        
-    Raises:
-        ValueError: If resource_data is empty or invalid
-    """
-    if not resource_data:
-        raise ValueError("Resource data cannot be empty")
+    // camelCase for private fields
+    private readonly ILogger _logger;
     
-    # Implementation here
-    pass
+    // Async methods end with Async
+    public async Task<Result> ProcessAsync()
+    {
+        // Implementation
+    }
+}
+
+// Use XML documentation
+/// <summary>
+/// Fetches Azure resources from subscription
+/// </summary>
+/// <param name="subscriptionId">The subscription ID</param>
+/// <returns>List of Azure resources</returns>
+public async Task<List<AzureResource>> FetchResourcesAsync(string subscriptionId)
 ```
 
-## Project Structure
+**Guidelines:**
+- ✅ Use nullable reference types
+- ✅ Follow async/await patterns
+- ✅ Use dependency injection
+- ✅ Write XML documentation for public APIs
+- ✅ Keep methods focused and small
+- ✅ Use meaningful variable names
+- ✅ Handle exceptions appropriately
 
+### Frontend (React + TypeScript)
+
+```typescript
+// Use TypeScript interfaces
+interface AnalysisResult {
+  executiveSummary: string;
+  findings: Finding[];
+}
+
+// Functional components with hooks
+const AnalysisComponent: React.FC = () => {
+  const [data, setData] = useState<AnalysisResult | null>(null);
+  
+  useEffect(() => {
+    // Side effects here
+  }, []);
+  
+  return (
+    <Box>
+      {/* JSX here */}
+    </Box>
+  );
+};
+
+// Use arrow functions for handlers
+const handleClick = async () => {
+  try {
+    const result = await fetchData();
+    setData(result);
+  } catch (error) {
+    console.error('Error:', error);
+  }
+};
 ```
-src/azure_reporter/
-├── main.py              # Main orchestration
-├── modules/             # Core functionality modules
-│   ├── azure_fetcher.py
-│   ├── ai_analyzer.py
-│   ├── powerpoint_generator.py
-│   └── backlog_generator.py
-└── utils/               # Utility functions
-    ├── config_loader.py
-    └── logger.py
+
+**Guidelines:**
+- ✅ Use TypeScript for type safety
+- ✅ Functional components with hooks
+- ✅ Material-UI components
+- ✅ Meaningful component names
+- ✅ Extract reusable components
+- ✅ Handle loading and error states
+- ✅ Use async/await for API calls
+
+## 🧪 Testing
+
+### Backend Tests
+
+```bash
+cd backend
+dotnet test
 ```
 
-## Adding New Features
+### Frontend Tests
 
-### Adding a New Azure Resource Type
+```bash
+cd frontend
+npm test
+npm run test:coverage
+```
 
-1. Update `azure_fetcher.py`:
-   - Add a new `fetch_X()` method
-   - Include the new resource in `fetch_all_resources()`
+### Integration Tests
 
-2. Update `ai_analyzer.py`:
-   - Add an `analyze_X()` method
-   - Include in `analyze_all_resources()`
+```bash
+# Run both backend and frontend
+docker-compose up
+# Test the full flow
+```
 
-3. Update `powerpoint_generator.py`:
-   - Add slides for the new resource type
+## 📦 Pull Request Process
 
-4. Update `backlog_generator.py`:
-   - Ensure it handles the new resource findings
+1. **Update Documentation**
+   - Update README.md if needed
+   - Add inline code comments
+   - Update API documentation
 
-5. Update configuration:
-   - Add option in `config.example.yaml`
-   - Update `config_loader.py` if needed
+2. **Test Your Changes**
+   - ✅ All tests pass
+   - ✅ No build warnings
+   - ✅ Linter passes
+   - ✅ Manual testing completed
 
-### Adding New Export Formats
-
-1. Create a new generator module in `modules/`
-2. Implement the export logic
-3. Integrate it into `main.py`
-4. Update configuration and documentation
-
-## Testing
-
-Currently, the project uses manual testing. When adding features:
-
-1. Test with a real Azure subscription
-2. Verify all output formats generate correctly
-3. Check that AI analysis produces reasonable results
-4. Ensure no regressions in existing functionality
-
-## Documentation
-
-- Update README.md for significant changes
-- Update QUICKSTART.md if setup changes
-- Add inline comments for complex logic
-- Update docstrings when changing function signatures
-
-## Pull Request Process
-
-1. Ensure your code follows the style guidelines
-2. Update documentation as needed
-3. Test thoroughly
-4. Ensure your branch is up to date with main:
+3. **Commit Guidelines**
    ```bash
-   git fetch upstream
-   git rebase upstream/main
+   # Use conventional commits
+   feat: Add new feature
+   fix: Fix bug
+   docs: Update documentation
+   style: Code style changes
+   refactor: Code refactoring
+   test: Add tests
+   chore: Maintenance tasks
    ```
-5. Submit the PR with a clear description
 
-## Questions?
+4. **Create Pull Request**
+   - Clear title and description
+   - Reference related issues
+   - Add screenshots for UI changes
+   - Request reviewers
 
-Open an issue with the "question" label if you need help or clarification.
+5. **Code Review**
+   - Address feedback promptly
+   - Keep discussions focused
+   - Be open to suggestions
 
-## License
+## 🏗️ Project Structure
+
+```
+azureReportingTool/
+├── backend/
+│   ├── AzureReportingTool.Api/      # Web API
+│   │   ├── Controllers/             # API endpoints
+│   │   └── Program.cs               # Startup
+│   └── AzureReportingTool.Core/     # Business logic
+│       ├── Models/                  # Data models
+│       └── Services/                # Services
+├── frontend/
+│   └── src/
+│       ├── components/              # React components
+│       ├── services/                # API clients
+│       └── App.tsx                  # Main app
+└── docs/                            # Documentation
+```
+
+## 🎯 Areas for Contribution
+
+### High Priority
+- 🔐 Enhanced security scanning
+- 📊 Additional report formats
+- 🌍 Internationalization
+- 🧪 Test coverage improvement
+
+### Medium Priority
+- 📈 Performance optimizations
+- 🎨 UI/UX enhancements
+- 📱 Mobile responsiveness
+- 🔧 Configuration improvements
+
+### Good First Issues
+- 📝 Documentation updates
+- 🐛 Bug fixes
+- 🧹 Code cleanup
+- ✨ Minor features
+
+## 🔍 Code Review Checklist
+
+- [ ] Code follows style guidelines
+- [ ] Self-review completed
+- [ ] Comments added for complex code
+- [ ] Documentation updated
+- [ ] No new warnings introduced
+- [ ] Tests added/updated
+- [ ] All tests pass
+- [ ] Works on multiple platforms
+- [ ] No breaking changes (or documented)
+
+## 📖 Additional Resources
+
+- [.NET Documentation](https://docs.microsoft.com/en-us/dotnet/)
+- [React Documentation](https://react.dev/)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+- [Material-UI Documentation](https://mui.com/)
+- [Azure SDK Documentation](https://docs.microsoft.com/en-us/dotnet/azure/)
+
+## 💬 Communication
+
+- **GitHub Issues**: Bug reports and feature requests
+- **Pull Requests**: Code contributions
+- **Discussions**: General questions and ideas
+
+## 🙏 Recognition
+
+All contributors will be:
+- Listed in the README
+- Mentioned in release notes
+- Part of our growing community
+
+## 📄 License
 
 By contributing, you agree that your contributions will be licensed under the MIT License.
+
+---
+
+<div align="center">
+
+**Thank you for contributing! 🎉**
+
+Every contribution, no matter how small, makes a difference.
+
+</div>
