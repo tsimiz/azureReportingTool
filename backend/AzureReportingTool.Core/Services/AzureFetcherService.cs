@@ -22,22 +22,48 @@ public class AzureFetcherService : IAzureFetcherService
 
     public async Task<List<AzureResource>> FetchAllResourcesAsync(string subscriptionId)
     {
-        var subscription = _armClient.GetSubscriptionResource(new ResourceIdentifier($"/subscriptions/{subscriptionId}"));
         var resources = new List<AzureResource>();
         
-        await foreach (var resource in subscription.GetGenericResourcesAsync())
+        // If subscriptionId is "all", iterate through all subscriptions
+        if (subscriptionId.Equals("all", StringComparison.OrdinalIgnoreCase))
         {
-            var azureResource = new AzureResource
+            await foreach (var subscription in _armClient.GetSubscriptions().GetAllAsync())
             {
-                Id = resource.Id.ToString(),
-                Name = resource.Data.Name,
-                Type = resource.Data.ResourceType.ToString(),
-                Location = resource.Data.Location.ToString(),
-                ResourceGroup = resource.Id.ResourceGroupName ?? string.Empty,
-                Tags = resource.Data.Tags?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value) ?? new Dictionary<string, string>()
-            };
+                await foreach (var resource in subscription.GetGenericResourcesAsync())
+                {
+                    var azureResource = new AzureResource
+                    {
+                        Id = resource.Id.ToString(),
+                        Name = resource.Data.Name,
+                        Type = resource.Data.ResourceType.ToString(),
+                        Location = resource.Data.Location.ToString(),
+                        ResourceGroup = resource.Id.ResourceGroupName ?? string.Empty,
+                        Tags = resource.Data.Tags?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value) ?? new Dictionary<string, string>()
+                    };
+                    
+                    resources.Add(azureResource);
+                }
+            }
+        }
+        else
+        {
+            // Single subscription case
+            var subscription = _armClient.GetSubscriptionResource(new ResourceIdentifier($"/subscriptions/{subscriptionId}"));
             
-            resources.Add(azureResource);
+            await foreach (var resource in subscription.GetGenericResourcesAsync())
+            {
+                var azureResource = new AzureResource
+                {
+                    Id = resource.Id.ToString(),
+                    Name = resource.Data.Name,
+                    Type = resource.Data.ResourceType.ToString(),
+                    Location = resource.Data.Location.ToString(),
+                    ResourceGroup = resource.Id.ResourceGroupName ?? string.Empty,
+                    Tags = resource.Data.Tags?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value) ?? new Dictionary<string, string>()
+                };
+                
+                resources.Add(azureResource);
+            }
         }
         
         return resources;
