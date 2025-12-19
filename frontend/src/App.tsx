@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Container,
   AppBar,
@@ -70,13 +70,27 @@ interface Finding {
 interface AnalysisResult {
   executiveSummary: string;
   findings: Finding[];
-  statistics: Record<string, any>;
-  tagCompliance?: any;
-  costAnalysis?: any;
+  statistics: {
+    TotalResources?: number;
+    TotalFindings?: number;
+    CriticalFindings?: number;
+    HighFindings?: number;
+  };
+  tagCompliance?: Record<string, unknown>;
+  costAnalysis?: Record<string, unknown>;
+}
+
+interface LoginStatus {
+  logged_in: boolean;
+  user: string;
+  subscription_id: string;
+  subscription_name: string;
 }
 
 function App() {
   const [subscriptionId, setSubscriptionId] = useState('00000000-0000-0000-0000-000000000000');
+  const [loginStatus, setLoginStatus] = useState<LoginStatus | null>(null);
+  const [loadingStatus, setLoadingStatus] = useState(true);
   const [settings, setSettings] = useState<AnalysisSettings>({
     outputDirectory: './output',
     reportFilename: 'azure_report',
@@ -101,6 +115,29 @@ function App() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch login status and subscriptions on component mount
+  useEffect(() => {
+    const fetchAzureStatus = async () => {
+      try {
+        // Fetch login status
+        const loginResponse = await axios.get(`${API_BASE_URL}/Azure/login-status`);
+        setLoginStatus(loginResponse.data);
+        
+        // Set default subscription if available
+        if (loginResponse.data.subscription_id) {
+          setSubscriptionId(loginResponse.data.subscription_id);
+        }
+      } catch (err) {
+        console.error('Failed to fetch Azure status:', err);
+        setError('Failed to connect to backend API. Please ensure the backend is running.');
+      } finally {
+        setLoadingStatus(false);
+      }
+    };
+
+    fetchAzureStatus();
+  }, []);
+
   const handleRunAnalysis = async () => {
     setLoading(true);
     setError(null);
@@ -110,8 +147,9 @@ function App() {
         settings,
       });
       setResult(response.data);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'An error occurred during analysis');
+    } catch (err) {
+      const errorMessage = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'An error occurred during analysis';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -140,6 +178,13 @@ function App() {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             ☁️ Azure Reporting Tool
           </Typography>
+          {loadingStatus ? (
+            <Chip label="Connecting..." color="default" variant="outlined" sx={{ bgcolor: 'rgba(255,255,255,0.2)', mr: 1 }} />
+          ) : loginStatus?.logged_in ? (
+            <Chip label={`✓ ${loginStatus.user}`} color="success" variant="outlined" sx={{ bgcolor: 'rgba(255,255,255,0.2)', mr: 1 }} />
+          ) : (
+            <Chip label="✗ Not Logged In" color="error" variant="outlined" sx={{ bgcolor: 'rgba(255,255,255,0.2)', mr: 1 }} />
+          )}
           <Chip label="Powered by .NET & React" color="primary" variant="outlined" sx={{ bgcolor: 'rgba(255,255,255,0.2)' }} />
         </Toolbar>
       </AppBar>
@@ -157,6 +202,7 @@ function App() {
             value={subscriptionId}
             onChange={(e) => setSubscriptionId(e.target.value)}
             variant="outlined"
+            helperText={loginStatus?.subscription_name ? `Connected to: ${loginStatus.subscription_name}` : 'Enter your Azure subscription ID'}
           />
         </Paper>
 
@@ -328,7 +374,7 @@ function App() {
                         <TableCell>
                           <Chip
                             label={finding.severity}
-                            color={getSeverityColor(finding.severity) as any}
+                            color={getSeverityColor(finding.severity) as 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'}
                             size="small"
                           />
                         </TableCell>
