@@ -38,6 +38,7 @@ import './App.css';
 // API Base URL - configurable via VITE_API_BASE_URL environment variable
 // Default: http://localhost:5175/api (matches .NET default port)
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175/api';
+const DEFAULT_SUBSCRIPTION_ID = '00000000-0000-0000-0000-000000000000';
 
 interface AnalysisSettings {
   outputDirectory: string;
@@ -110,7 +111,7 @@ interface Subscription {
 }
 
 function App() {
-  const [subscriptionId, setSubscriptionId] = useState('00000000-0000-0000-0000-000000000000');
+  const [subscriptionId, setSubscriptionId] = useState(DEFAULT_SUBSCRIPTION_ID);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [analyzeAllSubscriptions, setAnalyzeAllSubscriptions] = useState(false);
   const [loginStatus, setLoginStatus] = useState<LoginStatus | null>(null);
@@ -193,8 +194,11 @@ function App() {
     setLoading(true);
     setError(null);
     try {
+      // Note: Backend currently supports single subscription analysis
+      // When analyzeAllSubscriptions is true, we would need backend support for batch processing
       const response = await axios.post(`${API_BASE_URL}/Analysis/run`, {
-        subscriptionId,
+        subscriptionId: analyzeAllSubscriptions ? 'all' : subscriptionId,
+        analyzeAllSubscriptions,
         settings,
       });
       setResult(response.data);
@@ -247,7 +251,7 @@ function App() {
             <Typography variant="h6">Azure Subscription</Typography>
           </Box>
           <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: analyzeAllSubscriptions ? 6 : 10 }}>
+            <Grid size={{ xs: 12, md: 8 }}>
               <FormControl fullWidth>
                 <InputLabel id="subscription-select-label">Subscription</InputLabel>
                 <Select
@@ -259,7 +263,7 @@ function App() {
                   disabled={analyzeAllSubscriptions || subscriptions.length === 0}
                 >
                   {subscriptions.length === 0 ? (
-                    <MenuItem value="00000000-0000-0000-0000-000000000000">
+                    <MenuItem value={DEFAULT_SUBSCRIPTION_ID}>
                       No subscriptions available
                     </MenuItem>
                   ) : (
@@ -272,7 +276,7 @@ function App() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid size={{ xs: 12, md: analyzeAllSubscriptions ? 6 : 2 }}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <FormControlLabel
                 control={
                   <Checkbox
