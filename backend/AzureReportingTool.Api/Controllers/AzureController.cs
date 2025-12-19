@@ -79,7 +79,8 @@ public class AzureController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to fetch subscriptions");
-            return StatusCode(500, new { error = "Failed to fetch subscriptions. Please ensure you are authenticated with Azure (e.g., using 'az login', managed identity, or service principal credentials)." });
+            _logger.LogInformation("To authenticate, use one of: Azure CLI (az login), managed identity, or service principal credentials");
+            return StatusCode(500, new { error = "Authentication required. Please verify your Azure credentials." });
         }
     }
 }
