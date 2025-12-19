@@ -112,6 +112,27 @@ az login
 az account show
 ```
 
+**Not Seeing Your Subscription/Username:**
+The application uses Azure's `DefaultAzureCredential` which automatically tries multiple authentication methods in order:
+1. **Environment Variables** - Service Principal credentials
+2. **Azure CLI** - Credentials from `az login` (Recommended for development)
+3. **Managed Identity** - For Azure-hosted applications
+4. **Visual Studio/VS Code** - IDE credentials
+
+To ensure proper authentication:
+```bash
+# Login with Azure CLI (recommended for local development)
+az login
+
+# Verify your current subscription
+az account show
+
+# Set default subscription if needed
+az account set --subscription "your-subscription-id"
+```
+
+After logging in, restart the backend to see your actual subscription ID and username in the UI.
+
 ### Frontend Issues
 
 **Port Already in Use:**

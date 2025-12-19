@@ -168,11 +168,31 @@ http://localhost:5173
 
 #### Azure Authentication
 
-The tool supports **DefaultAzureCredential** which supports multiple authentication methods:
+The tool uses Azure's **DefaultAzureCredential** which automatically tries multiple authentication methods in order:
 
-1. **Azure CLI** (Recommended for development)
-2. **Service Principal** (Recommended for production)
-3. **Managed Identity** (For Azure-hosted deployments)
+1. **Azure CLI** (Recommended for development) - `az login`
+2. **Environment Variables** - Service Principal credentials
+3. **Managed Identity** - For Azure-hosted deployments
+4. **Visual Studio/VS Code** - IDE credentials
+
+**For Local Development:**
+```bash
+# Login with Azure CLI
+az login
+
+# Verify your subscription
+az account show
+
+# Set default subscription if needed
+az account set --subscription "your-subscription-id"
+```
+
+The backend will automatically detect your Azure credentials and display:
+- ✅ Your actual subscription ID
+- ✅ Your subscription name
+- ✅ Your authentication status in the UI
+
+If you see "Not authenticated" in the UI, ensure you've run `az login` and restart the backend.
 
 #### Frontend Configuration
 
