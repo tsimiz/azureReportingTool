@@ -33,7 +33,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowFrontend");
-app.UseHttpsRedirection();
+
+// Only use HTTPS redirection when running with HTTPS configured
+if (app.Environment.IsProduction() || builder.Configuration.GetValue<bool>("UseHttpsRedirection", false))
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseAuthorization();
 app.MapControllers();
 
