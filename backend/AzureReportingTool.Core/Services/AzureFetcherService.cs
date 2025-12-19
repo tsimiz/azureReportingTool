@@ -31,17 +31,7 @@ public class AzureFetcherService : IAzureFetcherService
             {
                 await foreach (var resource in subscription.GetGenericResourcesAsync())
                 {
-                    var azureResource = new AzureResource
-                    {
-                        Id = resource.Id.ToString(),
-                        Name = resource.Data.Name,
-                        Type = resource.Data.ResourceType.ToString(),
-                        Location = resource.Data.Location.ToString(),
-                        ResourceGroup = resource.Id.ResourceGroupName ?? string.Empty,
-                        Tags = resource.Data.Tags?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value) ?? new Dictionary<string, string>()
-                    };
-                    
-                    resources.Add(azureResource);
+                    resources.Add(MapToAzureResource(resource));
                 }
             }
         }
@@ -52,20 +42,23 @@ public class AzureFetcherService : IAzureFetcherService
             
             await foreach (var resource in subscription.GetGenericResourcesAsync())
             {
-                var azureResource = new AzureResource
-                {
-                    Id = resource.Id.ToString(),
-                    Name = resource.Data.Name,
-                    Type = resource.Data.ResourceType.ToString(),
-                    Location = resource.Data.Location.ToString(),
-                    ResourceGroup = resource.Id.ResourceGroupName ?? string.Empty,
-                    Tags = resource.Data.Tags?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value) ?? new Dictionary<string, string>()
-                };
-                
-                resources.Add(azureResource);
+                resources.Add(MapToAzureResource(resource));
             }
         }
         
         return resources;
+    }
+
+    private static AzureResource MapToAzureResource(Azure.ResourceManager.Resources.GenericResource resource)
+    {
+        return new AzureResource
+        {
+            Id = resource.Id.ToString(),
+            Name = resource.Data.Name,
+            Type = resource.Data.ResourceType.ToString(),
+            Location = resource.Data.Location.ToString(),
+            ResourceGroup = resource.Id.ResourceGroupName ?? string.Empty,
+            Tags = resource.Data.Tags?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value) ?? new Dictionary<string, string>()
+        };
     }
 }
