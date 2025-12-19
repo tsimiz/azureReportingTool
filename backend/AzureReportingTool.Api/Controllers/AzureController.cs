@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Azure.Identity;
 using Azure.ResourceManager;
 
 namespace AzureReportingTool.Api.Controllers;
@@ -9,10 +8,12 @@ namespace AzureReportingTool.Api.Controllers;
 public class AzureController : ControllerBase
 {
     private readonly ILogger<AzureController> _logger;
+    private readonly ArmClient _armClient;
 
-    public AzureController(ILogger<AzureController> logger)
+    public AzureController(ILogger<AzureController> logger, ArmClient armClient)
     {
         _logger = logger;
+        _armClient = armClient;
     }
 
     [HttpGet("login-status")]
@@ -20,11 +21,8 @@ public class AzureController : ControllerBase
     {
         try
         {
-            var credential = new DefaultAzureCredential();
-            var armClient = new ArmClient(credential);
-            
             // Get default subscription
-            var subscription = await armClient.GetDefaultSubscriptionAsync();
+            var subscription = await _armClient.GetDefaultSubscriptionAsync();
             var subscriptionData = subscription.Data;
             
             // For DefaultAzureCredential, we don't have direct access to user details
@@ -60,14 +58,11 @@ public class AzureController : ControllerBase
     {
         try
         {
-            var credential = new DefaultAzureCredential();
-            var armClient = new ArmClient(credential);
-            
             var subscriptions = new List<object>();
-            var defaultSubscription = await armClient.GetDefaultSubscriptionAsync();
+            var defaultSubscription = await _armClient.GetDefaultSubscriptionAsync();
             var defaultSubscriptionId = defaultSubscription.Data.SubscriptionId;
             
-            await foreach (var subscription in armClient.GetSubscriptions().GetAllAsync())
+            await foreach (var subscription in _armClient.GetSubscriptions().GetAllAsync())
             {
                 subscriptions.Add(new
                 {

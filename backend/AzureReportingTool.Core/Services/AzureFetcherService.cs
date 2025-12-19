@@ -13,12 +13,16 @@ public interface IAzureFetcherService
 
 public class AzureFetcherService : IAzureFetcherService
 {
+    private readonly ArmClient _armClient;
+
+    public AzureFetcherService(ArmClient armClient)
+    {
+        _armClient = armClient;
+    }
+
     public async Task<List<AzureResource>> FetchAllResourcesAsync(string subscriptionId)
     {
-        var credential = new DefaultAzureCredential();
-        var armClient = new ArmClient(credential);
-        
-        var subscription = armClient.GetSubscriptionResource(new ResourceIdentifier($"/subscriptions/{subscriptionId}"));
+        var subscription = _armClient.GetSubscriptionResource(new ResourceIdentifier($"/subscriptions/{subscriptionId}"));
         var resources = new List<AzureResource>();
         
         await foreach (var resource in subscription.GetGenericResourcesAsync())

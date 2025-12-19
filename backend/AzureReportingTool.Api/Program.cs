@@ -1,4 +1,6 @@
 using AzureReportingTool.Core.Services;
+using Azure.Identity;
+using Azure.ResourceManager;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +19,13 @@ builder.Services.AddCors(options =>
                   .AllowAnyMethod()
                   .AllowAnyHeader();
         });
+});
+
+// Register Azure services
+builder.Services.AddSingleton<ArmClient>(sp => 
+{
+    var credential = new DefaultAzureCredential();
+    return new ArmClient(credential);
 });
 
 // Register application services
