@@ -1,4 +1,6 @@
 using AzureReportingTool.Core.Services;
+using Azure.Identity;
+using Azure.ResourceManager;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +21,13 @@ builder.Services.AddCors(options =>
         });
 });
 
+// Register Azure services
+builder.Services.AddSingleton<ArmClient>(sp => 
+{
+    var credential = new DefaultAzureCredential();
+    return new ArmClient(credential);
+});
+
 // Register application services
 builder.Services.AddScoped<IAzureFetcherService, AzureFetcherService>();
 builder.Services.AddScoped<IAnalysisService, AnalysisService>();
@@ -33,7 +42,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowFrontend");
-app.UseHttpsRedirection();
+
+// Only use HTTPS redirection when running with HTTPS configured
+if (app.Environment.IsProduction() || builder.Configuration.GetValue<bool>("UseHttpsRedirection", false))
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseAuthorization();
 app.MapControllers();
 
