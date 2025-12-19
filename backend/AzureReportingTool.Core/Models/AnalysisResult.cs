@@ -3,10 +3,31 @@ namespace AzureReportingTool.Core.Models;
 public class AnalysisResult
 {
     public string ExecutiveSummary { get; set; } = string.Empty;
+    public ExecutiveSummaryPillars? ExecutiveSummaryPillars { get; set; }
     public List<Finding> Findings { get; set; } = new();
     public Dictionary<string, object> Statistics { get; set; } = new();
     public TagComplianceResult? TagCompliance { get; set; }
     public CostAnalysisResult? CostAnalysis { get; set; }
+}
+
+public class ExecutiveSummaryPillars
+{
+    public PillarSummary Security { get; set; } = new();
+    public PillarSummary CostOptimization { get; set; } = new();
+    public PillarSummary OperationalExcellence { get; set; } = new();
+    public PillarSummary Reliability { get; set; } = new();
+    public PillarSummary PerformanceEfficiency { get; set; } = new();
+}
+
+public class PillarSummary
+{
+    public string Name { get; set; } = string.Empty;
+    public string Overview { get; set; } = string.Empty;
+    public string CurrentState { get; set; } = string.Empty;
+    public List<string> Strengths { get; set; } = new();
+    public List<string> Weaknesses { get; set; } = new();
+    public List<string> Recommendations { get; set; } = new();
+    public string Score { get; set; } = "Medium"; // Low, Medium, High
 }
 
 public class Finding
