@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Azure.ResourceManager;
+using System.Text.Json.Serialization;
 
 namespace AzureReportingTool.Api.Controllers;
 
@@ -32,23 +33,23 @@ public class AzureController : ControllerBase
             
             _logger.LogInformation("Successfully authenticated with subscription: {SubscriptionId}", subscriptionData.SubscriptionId);
             
-            return Ok(new
+            return Ok(new LoginStatusResponse
             {
-                logged_in = true,
-                user = userName,
-                subscription_id = subscriptionData.SubscriptionId,
-                subscription_name = subscriptionData.DisplayName
+                LoggedIn = true,
+                User = userName,
+                SubscriptionId = subscriptionData.SubscriptionId,
+                SubscriptionName = subscriptionData.DisplayName
             });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to authenticate with Azure");
-            return Ok(new
+            return Ok(new LoginStatusResponse
             {
-                logged_in = false,
-                user = "Not authenticated",
-                subscription_id = "",
-                subscription_name = "No subscription available"
+                LoggedIn = false,
+                User = "Not authenticated",
+                SubscriptionId = "",
+                SubscriptionName = "No subscription available"
             });
         }
     }
@@ -58,17 +59,17 @@ public class AzureController : ControllerBase
     {
         try
         {
-            var subscriptions = new List<object>();
+            var subscriptions = new List<SubscriptionInfo>();
             var defaultSubscription = await _armClient.GetDefaultSubscriptionAsync();
             var defaultSubscriptionId = defaultSubscription.Data.SubscriptionId;
             
             await foreach (var subscription in _armClient.GetSubscriptions().GetAllAsync())
             {
-                subscriptions.Add(new
+                subscriptions.Add(new SubscriptionInfo
                 {
-                    id = subscription.Data.SubscriptionId,
-                    name = subscription.Data.DisplayName,
-                    is_default = subscription.Data.SubscriptionId == defaultSubscriptionId
+                    Id = subscription.Data.SubscriptionId,
+                    Name = subscription.Data.DisplayName,
+                    IsDefault = subscription.Data.SubscriptionId == defaultSubscriptionId
                 });
             }
             
@@ -78,7 +79,34 @@ public class AzureController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to fetch subscriptions");
-            return StatusCode(500, new { error = "Failed to fetch subscriptions. Please ensure you are logged in with Azure CLI (az login)." });
+            return StatusCode(500, new { error = "Failed to fetch subscriptions. Please ensure you are authenticated with Azure (e.g., using 'az login', managed identity, or service principal credentials)." });
         }
     }
+}
+
+public class LoginStatusResponse
+{
+    [JsonPropertyName("logged_in")]
+    public bool LoggedIn { get; set; }
+    
+    [JsonPropertyName("user")]
+    public string User { get; set; } = string.Empty;
+    
+    [JsonPropertyName("subscription_id")]
+    public string SubscriptionId { get; set; } = string.Empty;
+    
+    [JsonPropertyName("subscription_name")]
+    public string SubscriptionName { get; set; } = string.Empty;
+}
+
+public class SubscriptionInfo
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = string.Empty;
+    
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+    
+    [JsonPropertyName("is_default")]
+    public bool IsDefault { get; set; }
 }
