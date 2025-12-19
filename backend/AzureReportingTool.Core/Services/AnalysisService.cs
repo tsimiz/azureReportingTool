@@ -288,11 +288,11 @@ public class AnalysisService : IAnalysisService
             r.Tags.ContainsKey("Department") || 
             r.Tags.ContainsKey("Project"));
         
-        if (resourcesWithCostTags > resources.Count * COST_TAG_COMPLIANCE_THRESHOLD)
+        if (resources.Count > 0 && resourcesWithCostTags > resources.Count * COST_TAG_COMPLIANCE_THRESHOLD)
         {
             strengths.Add($"Good cost allocation tagging: {resourcesWithCostTags} out of {resources.Count} resources have cost-related tags, enabling proper chargeback and showback.");
         }
-        else
+        else if (resources.Count > 0)
         {
             weaknesses.Add($"Poor cost allocation tagging: Only {resourcesWithCostTags} out of {resources.Count} resources have cost-related tags (CostCenter, Department, or Project).");
             recommendations.Add("Implement comprehensive tagging strategy for cost allocation and tracking. Ensure all resources have CostCenter, Department, and Project tags.");
@@ -351,11 +351,11 @@ public class AnalysisService : IAnalysisService
             r.Tags.ContainsKey("Owner") || 
             r.Tags.ContainsKey("Application"));
         
-        if (resourcesWithOpTags > resources.Count * OPERATIONAL_TAG_COMPLIANCE_THRESHOLD)
+        if (resources.Count > 0 && resourcesWithOpTags > resources.Count * OPERATIONAL_TAG_COMPLIANCE_THRESHOLD)
         {
             strengths.Add($"Strong operational tagging: {resourcesWithOpTags} out of {resources.Count} resources have operational tags (Environment, Owner, Application), facilitating resource management and automation.");
         }
-        else
+        else if (resources.Count > 0)
         {
             weaknesses.Add($"Insufficient operational tagging: Only {resourcesWithOpTags} out of {resources.Count} resources have operational tags.");
             recommendations.Add("Implement comprehensive tagging for operational management including Environment, Owner, Application, and Criticality tags.");
@@ -522,7 +522,7 @@ public class AnalysisService : IAnalysisService
     
     private string CalculateScore(int strengthCount, int weaknessCount)
     {
-        if (strengthCount >= weaknessCount && strengthCount > SCORE_HIGH_STRENGTH_THRESHOLD)
+        if (strengthCount > weaknessCount && strengthCount > SCORE_HIGH_STRENGTH_THRESHOLD)
         {
             return "High";
         }
