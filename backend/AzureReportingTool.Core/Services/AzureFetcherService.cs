@@ -64,7 +64,7 @@ public class AzureFetcherService : IAzureFetcherService
         return resources;
     }
 
-    private static AzureResource MapToAzureResource(Azure.ResourceManager.Resources.GenericResource resource)
+    private static AzureResource MapToAzureResource(GenericResource resource)
     {
         return new AzureResource
         {
