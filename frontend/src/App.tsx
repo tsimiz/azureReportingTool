@@ -123,9 +123,6 @@ function App() {
         const loginResponse = await axios.get(`${API_BASE_URL}/Azure/login-status`);
         setLoginStatus(loginResponse.data);
         
-        // Fetch subscriptions (for future use)
-        await axios.get(`${API_BASE_URL}/Azure/subscriptions`);
-        
         // Set default subscription if available
         if (loginResponse.data.subscription_id) {
           setSubscriptionId(loginResponse.data.subscription_id);
