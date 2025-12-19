@@ -3,6 +3,7 @@ using Azure.Identity;
 using Azure.ResourceManager;
 using Azure.ResourceManager.Resources;
 using AzureReportingTool.Core.Models;
+using Microsoft.Extensions.Logging;
 
 namespace AzureReportingTool.Core.Services;
 
@@ -13,11 +14,15 @@ public interface IAzureFetcherService
 
 public class AzureFetcherService : IAzureFetcherService
 {
+    public const string AllSubscriptionsIdentifier = "all";
+    
     private readonly ArmClient _armClient;
+    private readonly ILogger<AzureFetcherService> _logger;
 
-    public AzureFetcherService(ArmClient armClient)
+    public AzureFetcherService(ArmClient armClient, ILogger<AzureFetcherService> logger)
     {
         _armClient = armClient;
+        _logger = logger;
     }
 
     public async Task<List<AzureResource>> FetchAllResourcesAsync(string subscriptionId)
@@ -25,13 +30,23 @@ public class AzureFetcherService : IAzureFetcherService
         var resources = new List<AzureResource>();
         
         // If subscriptionId is "all", iterate through all subscriptions
-        if (subscriptionId.Equals("all", StringComparison.OrdinalIgnoreCase))
+        if (subscriptionId.Equals(AllSubscriptionsIdentifier, StringComparison.OrdinalIgnoreCase))
         {
             await foreach (var subscription in _armClient.GetSubscriptions().GetAllAsync())
             {
-                await foreach (var resource in subscription.GetGenericResourcesAsync())
+                try
                 {
-                    resources.Add(MapToAzureResource(resource));
+                    _logger.LogInformation("Fetching resources from subscription: {SubscriptionId}", subscription.Data.SubscriptionId);
+                    
+                    await foreach (var resource in subscription.GetGenericResourcesAsync())
+                    {
+                        resources.Add(MapToAzureResource(resource));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to fetch resources from subscription {SubscriptionId}. Skipping this subscription.", subscription.Data.SubscriptionId);
+                    // Continue with the next subscription instead of failing the entire operation
                 }
             }
         }

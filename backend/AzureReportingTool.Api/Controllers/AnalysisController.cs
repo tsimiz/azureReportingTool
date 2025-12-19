@@ -27,7 +27,7 @@ public class AnalysisController : ControllerBase
     {
         try
         {
-            if (request.SubscriptionId.Equals("all", StringComparison.OrdinalIgnoreCase))
+            if (request.SubscriptionId.Equals(AzureFetcherService.AllSubscriptionsIdentifier, StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogInformation("Starting analysis for all subscriptions");
             }
