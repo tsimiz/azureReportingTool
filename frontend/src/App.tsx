@@ -31,7 +31,9 @@ import {
 import axios from 'axios';
 import './App.css';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+// API Base URL - configurable via VITE_API_BASE_URL environment variable
+// Default: http://localhost:5175/api (matches .NET default port)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175/api';
 
 interface AnalysisSettings {
   outputDirectory: string;
