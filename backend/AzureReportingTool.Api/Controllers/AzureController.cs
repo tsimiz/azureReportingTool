@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Azure.Identity;
 using Azure.ResourceManager;
-using Azure.Core;
 
 namespace AzureReportingTool.Api.Controllers;
 
@@ -28,21 +27,10 @@ public class AzureController : ControllerBase
             var subscription = await armClient.GetDefaultSubscriptionAsync();
             var subscriptionData = subscription.Data;
             
-            // Try to get user information from the token
-            string userName = "Azure User";
-            try
-            {
-                var tokenRequestContext = new TokenRequestContext(new[] { "https://management.azure.com/.default" });
-                var token = await credential.GetTokenAsync(tokenRequestContext, default);
-                
-                // For Azure CLI, the user info is typically in the UPN or OID claim
-                // For now, we'll use a generic name but the authentication is verified
-                userName = subscriptionData.DisplayName != null ? $"User ({subscriptionData.DisplayName})" : "Azure User";
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Could not retrieve detailed user information");
-            }
+            // For DefaultAzureCredential, we don't have direct access to user details
+            // The user is authenticated via Azure CLI, Managed Identity, or other methods
+            // We use "Authenticated User" as a generic display name
+            string userName = "Authenticated User";
             
             _logger.LogInformation("Successfully authenticated with subscription: {SubscriptionId}", subscriptionData.SubscriptionId);
             
