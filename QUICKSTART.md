@@ -27,7 +27,7 @@ cd backend/AzureReportingTool.Api
 dotnet run
 ```
 
-Backend will start on: `http://localhost:5000`
+Backend will start on: `http://localhost:5175` (default .NET development port)
 
 ### 3️⃣ Start Frontend (Terminal 2)
 
@@ -38,6 +38,8 @@ npm run dev
 ```
 
 Frontend will start on: `http://localhost:5173`
+
+> **Note**: The frontend is pre-configured to connect to `http://localhost:5175/api`. If your backend runs on a different port, see the [Frontend Configuration](#frontend-configuration) section below.
 
 ### 4️⃣ Login to Azure
 
@@ -50,6 +52,30 @@ az login
 Navigate to `http://localhost:5173` and start analyzing!
 
 ## 🔧 Configuration
+
+### Frontend Configuration
+
+To configure the frontend to connect to a backend on a different port or address:
+
+1. **Copy the example environment file:**
+   ```bash
+   cd frontend
+   cp .env.example .env
+   ```
+
+2. **Edit `.env` and set your backend URL:**
+   ```env
+   # For Docker deployment (port 5000)
+   VITE_API_BASE_URL=http://localhost:5000/api
+   
+   # For custom backend
+   VITE_API_BASE_URL=http://your-backend-host:port/api
+   ```
+
+3. **Restart the frontend:**
+   ```bash
+   npm run dev
+   ```
 
 ### Environment Variables (Optional)
 
@@ -95,8 +121,12 @@ npm run dev -- --port 3000
 ```
 
 **API Connection Failed:**
-- Check backend is running on `http://localhost:5000`
-- Update `API_BASE_URL` in `frontend/src/App.tsx` if needed
+- Check backend is running (default port: `http://localhost:5175`)
+- If backend uses a different port, create `frontend/.env` file:
+  ```env
+  VITE_API_BASE_URL=http://localhost:YOUR_PORT/api
+  ```
+- Restart frontend after changing `.env` file
 
 ## 📚 Next Steps
 

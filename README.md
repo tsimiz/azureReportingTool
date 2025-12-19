@@ -142,7 +142,7 @@ az account show --query id -o tsv
 cd backend/AzureReportingTool.Api
 dotnet run
 ```
-The API will start on `https://localhost:5000` (or `http://localhost:5000`)
+The API will start on `http://localhost:5175` (default .NET port)
 
 **Terminal 2 - Frontend:**
 ```bash
@@ -150,6 +150,8 @@ cd frontend
 npm run dev
 ```
 The UI will start on `http://localhost:5173`
+
+> **Note**: The frontend is configured to connect to the backend at `http://localhost:5175/api` by default. If your backend runs on a different port (e.g., port 5000 for Docker), you can configure this by creating a `.env` file in the `frontend` directory. See the [Frontend Configuration](#frontend-configuration) section below.
 
 ### 6️⃣ Access the Application
 
@@ -171,6 +173,32 @@ The tool supports **DefaultAzureCredential** which supports multiple authenticat
 1. **Azure CLI** (Recommended for development)
 2. **Service Principal** (Recommended for production)
 3. **Managed Identity** (For Azure-hosted deployments)
+
+#### Frontend Configuration
+
+The frontend can be configured to connect to the backend running on different ports or addresses.
+
+**Create a `.env` file in the `frontend` directory:**
+
+```bash
+cd frontend
+cp .env.example .env
+```
+
+**Edit `.env` to specify your backend URL:**
+
+```env
+# For default .NET development (default)
+VITE_API_BASE_URL=http://localhost:5175/api
+
+# For Docker deployment
+VITE_API_BASE_URL=http://localhost:5000/api
+
+# For custom backend address
+VITE_API_BASE_URL=http://your-backend-host:port/api
+```
+
+After changing the `.env` file, restart the frontend development server for changes to take effect.
 
 #### AI Configuration
 
