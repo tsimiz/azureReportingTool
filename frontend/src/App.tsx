@@ -25,12 +25,24 @@ import {
   Select,
   InputLabel,
   FormControl,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Divider,
 } from '@mui/material';
 import {
   CloudQueue as CloudIcon,
   Analytics as AnalyticsIcon,
   Security as SecurityIcon,
   SmartToy as AiIcon,
+  ExpandMore as ExpandMoreIcon,
+  CheckCircle as CheckCircleIcon,
+  Warning as WarningIcon,
+  Lightbulb as LightbulbIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
 import './App.css';
@@ -84,8 +96,27 @@ interface Finding {
   priority: number;
 }
 
+interface PillarSummary {
+  name: string;
+  overview: string;
+  currentState: string;
+  strengths: string[];
+  weaknesses: string[];
+  recommendations: string[];
+  score: string;
+}
+
+interface ExecutiveSummaryPillars {
+  security: PillarSummary;
+  costOptimization: PillarSummary;
+  operationalExcellence: PillarSummary;
+  reliability: PillarSummary;
+  performanceEfficiency: PillarSummary;
+}
+
 interface AnalysisResult {
   executiveSummary: string;
+  executiveSummaryPillars?: ExecutiveSummaryPillars;
   findings: Finding[];
   statistics: {
     TotalResources?: number;
@@ -210,7 +241,7 @@ function App() {
     }
   };
 
-  const getSeverityColor = (severity: string) => {
+  const getSeverityColor = (severity: string): 'error' | 'warning' | 'info' | 'success' | 'default' => {
     switch (severity.toLowerCase()) {
       case 'critical':
         return 'error';
@@ -223,6 +254,108 @@ function App() {
       default:
         return 'default';
     }
+  };
+
+  const getScoreColor = (score: string): 'success' | 'warning' | 'error' | 'info' => {
+    switch (score.toLowerCase()) {
+      case 'high':
+        return 'success';
+      case 'medium':
+        return 'warning';
+      case 'low':
+        return 'error';
+      default:
+        return 'info';
+    }
+  };
+
+  const renderPillarSummary = (pillar: PillarSummary) => {
+    return (
+      <Accordion key={pillar.name} defaultExpanded>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+            <Typography variant="h6" sx={{ flexGrow: 1 }}>
+              {pillar.name}
+            </Typography>
+            <Chip 
+              label={`Score: ${pillar.score}`} 
+              color={getScoreColor(pillar.score)}
+              sx={{ mr: 2 }}
+            />
+          </Box>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Box>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              {pillar.overview}
+            </Typography>
+            
+            <Divider sx={{ my: 2 }} />
+            
+            <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+              Current State Assessment
+            </Typography>
+            <Typography variant="body2" paragraph sx={{ bgcolor: 'background.default', p: 2, borderRadius: 1 }}>
+              {pillar.currentState}
+            </Typography>
+            
+            {pillar.strengths.length > 0 && (
+              <>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ mt: 2 }}>
+                  ✅ Strengths
+                </Typography>
+                <List dense>
+                  {pillar.strengths.map((strength, index) => (
+                    <ListItem key={index}>
+                      <ListItemIcon>
+                        <CheckCircleIcon color="success" />
+                      </ListItemIcon>
+                      <ListItemText primary={strength} />
+                    </ListItem>
+                  ))}
+                </List>
+              </>
+            )}
+            
+            {pillar.weaknesses.length > 0 && (
+              <>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ mt: 2 }}>
+                  ⚠️ Areas for Improvement
+                </Typography>
+                <List dense>
+                  {pillar.weaknesses.map((weakness, index) => (
+                    <ListItem key={index}>
+                      <ListItemIcon>
+                        <WarningIcon color="warning" />
+                      </ListItemIcon>
+                      <ListItemText primary={weakness} />
+                    </ListItem>
+                  ))}
+                </List>
+              </>
+            )}
+            
+            {pillar.recommendations.length > 0 && (
+              <>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ mt: 2 }}>
+                  💡 Recommendations
+                </Typography>
+                <List dense>
+                  {pillar.recommendations.map((recommendation, index) => (
+                    <ListItem key={index}>
+                      <ListItemIcon>
+                        <LightbulbIcon color="primary" />
+                      </ListItemIcon>
+                      <ListItemText primary={recommendation} />
+                    </ListItem>
+                  ))}
+                </List>
+              </>
+            )}
+          </Box>
+        </AccordionDetails>
+      </Accordion>
+    );
   };
 
   return (
@@ -574,7 +707,7 @@ function App() {
             </Grid>
 
             {/* Executive Summary */}
-            {result.executiveSummary && (
+            {result.executiveSummary && !result.executiveSummaryPillars && (
               <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
                 <Typography variant="h6" gutterBottom>
                   📋 Executive Summary
@@ -582,6 +715,25 @@ function App() {
                 <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
                   {result.executiveSummary}
                 </Typography>
+              </Paper>
+            )}
+
+            {/* CAF/WAF Pillar-Based Executive Summary */}
+            {result.executiveSummaryPillars && (
+              <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
+                <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
+                  📋 Executive Summary - Microsoft CAF/WAF Analysis
+                </Typography>
+                <Alert severity="info" sx={{ mb: 3 }}>
+                  This analysis evaluates your Azure environment against Microsoft's Cloud Adoption Framework (CAF) 
+                  and Well-Architected Framework (WAF) best practices across five core pillars.
+                </Alert>
+                
+                {renderPillarSummary(result.executiveSummaryPillars.security)}
+                {renderPillarSummary(result.executiveSummaryPillars.costOptimization)}
+                {renderPillarSummary(result.executiveSummaryPillars.operationalExcellence)}
+                {renderPillarSummary(result.executiveSummaryPillars.reliability)}
+                {renderPillarSummary(result.executiveSummaryPillars.performanceEfficiency)}
               </Paper>
             )}
 
@@ -609,7 +761,7 @@ function App() {
                         <TableCell>
                           <Chip
                             label={finding.severity}
-                            color={getSeverityColor(finding.severity) as 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'}
+                            color={getSeverityColor(finding.severity)}
                             size="small"
                           />
                         </TableCell>
