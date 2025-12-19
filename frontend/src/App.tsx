@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import {
-  Container,
   AppBar,
   Toolbar,
   Typography,
@@ -22,11 +21,16 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  MenuItem,
+  Select,
+  InputLabel,
+  FormControl,
 } from '@mui/material';
 import {
   CloudQueue as CloudIcon,
   Analytics as AnalyticsIcon,
   Security as SecurityIcon,
+  SmartToy as AiIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
 import './App.css';
@@ -34,6 +38,7 @@ import './App.css';
 // API Base URL - configurable via VITE_API_BASE_URL environment variable
 // Default: http://localhost:5175/api (matches .NET default port)
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175/api';
+const DEFAULT_SUBSCRIPTION_ID = '00000000-0000-0000-0000-000000000000';
 
 interface AnalysisSettings {
   outputDirectory: string;
@@ -53,6 +58,18 @@ interface AnalysisSettings {
     enabled: boolean;
     requiredTags: string[];
     invalidTagValues: string[];
+  };
+  aiConfiguration: {
+    provider: 'openai' | 'azure' | 'none';
+    openAI: {
+      apiKey: string;
+      model: string;
+    };
+    azureAI: {
+      endpoint: string;
+      apiKey: string;
+      deployment: string;
+    };
   };
 }
 
@@ -87,8 +104,16 @@ interface LoginStatus {
   subscription_name: string;
 }
 
+interface Subscription {
+  id: string;
+  name: string;
+  is_default: boolean;
+}
+
 function App() {
-  const [subscriptionId, setSubscriptionId] = useState('00000000-0000-0000-0000-000000000000');
+  const [subscriptionId, setSubscriptionId] = useState(DEFAULT_SUBSCRIPTION_ID);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [analyzeAllSubscriptions, setAnalyzeAllSubscriptions] = useState(false);
   const [loginStatus, setLoginStatus] = useState<LoginStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [settings, setSettings] = useState<AnalysisSettings>({
@@ -110,6 +135,18 @@ function App() {
       requiredTags: [],
       invalidTagValues: [],
     },
+    aiConfiguration: {
+      provider: 'none',
+      openAI: {
+        apiKey: '',
+        model: 'gpt-4',
+      },
+      azureAI: {
+        endpoint: '',
+        apiKey: '',
+        deployment: 'gpt-4',
+      },
+    },
   });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -123,9 +160,24 @@ function App() {
         const loginResponse = await axios.get(`${API_BASE_URL}/Azure/login-status`);
         setLoginStatus(loginResponse.data);
         
-        // Set default subscription if available
-        if (loginResponse.data.subscription_id) {
-          setSubscriptionId(loginResponse.data.subscription_id);
+        // Fetch subscriptions
+        try {
+          const subsResponse = await axios.get(`${API_BASE_URL}/Azure/subscriptions`);
+          setSubscriptions(subsResponse.data);
+          
+          // Set default subscription if available
+          const defaultSub = subsResponse.data.find((sub: Subscription) => sub.is_default);
+          if (defaultSub) {
+            setSubscriptionId(defaultSub.id);
+          } else if (subsResponse.data.length > 0) {
+            setSubscriptionId(subsResponse.data[0].id);
+          }
+        } catch (err) {
+          console.error('Failed to fetch subscriptions:', err);
+          // Still set default from login status if subscription fetch fails
+          if (loginResponse.data.subscription_id) {
+            setSubscriptionId(loginResponse.data.subscription_id);
+          }
         }
       } catch (err) {
         console.error('Failed to fetch Azure status:', err);
@@ -142,8 +194,11 @@ function App() {
     setLoading(true);
     setError(null);
     try {
+      // Note: Backend currently supports single subscription analysis
+      // When analyzeAllSubscriptions is true, we would need backend support for batch processing
       const response = await axios.post(`${API_BASE_URL}/Analysis/run`, {
-        subscriptionId,
+        subscriptionId: analyzeAllSubscriptions ? 'all' : subscriptionId,
+        analyzeAllSubscriptions,
         settings,
       });
       setResult(response.data);
@@ -179,31 +234,67 @@ function App() {
             ☁️ Azure Reporting Tool
           </Typography>
           {loadingStatus ? (
-            <Chip label="Connecting..." color="default" variant="outlined" sx={{ bgcolor: 'rgba(255,255,255,0.2)', mr: 1 }} />
+            <Chip label="Connecting..." color="default" variant="filled" sx={{ bgcolor: 'rgba(255,255,255,0.9)', color: '#0078d4', fontWeight: 'bold' }} />
           ) : loginStatus?.logged_in ? (
-            <Chip label={`✓ ${loginStatus.user}`} color="success" variant="outlined" sx={{ bgcolor: 'rgba(255,255,255,0.2)', mr: 1 }} />
+            <Chip label={`✓ ${loginStatus.user}`} color="success" variant="filled" sx={{ bgcolor: '#4caf50', color: 'white', fontWeight: 'bold' }} />
           ) : (
-            <Chip label="✗ Not Logged In" color="error" variant="outlined" sx={{ bgcolor: 'rgba(255,255,255,0.2)', mr: 1 }} />
+            <Chip label="✗ Not Logged In" color="error" variant="filled" sx={{ bgcolor: '#f44336', color: 'white', fontWeight: 'bold' }} />
           )}
-          <Chip label="Powered by .NET & React" color="primary" variant="outlined" sx={{ bgcolor: 'rgba(255,255,255,0.2)' }} />
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Box sx={{ width: '100%', px: 4, mt: 4, mb: 4 }}>
         {/* Subscription Selection */}
         <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
             <SecurityIcon sx={{ mr: 1, color: 'primary.main' }} />
             <Typography variant="h6">Azure Subscription</Typography>
           </Box>
-          <TextField
-            fullWidth
-            label="Subscription ID"
-            value={subscriptionId}
-            onChange={(e) => setSubscriptionId(e.target.value)}
-            variant="outlined"
-            helperText={loginStatus?.subscription_name ? `Connected to: ${loginStatus.subscription_name}` : 'Enter your Azure subscription ID'}
-          />
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 8 }}>
+              <FormControl fullWidth>
+                <InputLabel id="subscription-select-label">Subscription</InputLabel>
+                <Select
+                  labelId="subscription-select-label"
+                  id="subscription-select"
+                  value={subscriptionId}
+                  label="Subscription"
+                  onChange={(e) => setSubscriptionId(e.target.value)}
+                  disabled={analyzeAllSubscriptions || subscriptions.length === 0}
+                >
+                  {subscriptions.length === 0 ? (
+                    <MenuItem value={DEFAULT_SUBSCRIPTION_ID}>
+                      No subscriptions available
+                    </MenuItem>
+                  ) : (
+                    subscriptions.map((sub) => (
+                      <MenuItem key={sub.id} value={sub.id}>
+                        {sub.name} {sub.is_default ? '(Default)' : ''}
+                      </MenuItem>
+                    ))
+                  )}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={analyzeAllSubscriptions}
+                    onChange={(e) => setAnalyzeAllSubscriptions(e.target.checked)}
+                    disabled={subscriptions.length === 0}
+                  />
+                }
+                label="Analyze All Subscriptions"
+                sx={{ mt: 1 }}
+              />
+            </Grid>
+          </Grid>
+          {analyzeAllSubscriptions && subscriptions.length > 0 && (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              Analysis will be performed across all {subscriptions.length} subscriptions
+            </Alert>
+          )}
         </Paper>
 
         {/* Settings */}
@@ -274,6 +365,150 @@ function App() {
               {loading ? 'Analyzing...' : '🔍 Run Analysis'}
             </Button>
           </Box>
+        </Paper>
+
+        {/* AI Configuration */}
+        <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <AiIcon sx={{ mr: 1, color: 'primary.main' }} />
+            <Typography variant="h6">AI Configuration</Typography>
+          </Box>
+          
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <FormControl fullWidth>
+                <InputLabel id="ai-provider-label">AI Provider</InputLabel>
+                <Select
+                  labelId="ai-provider-label"
+                  value={settings.aiConfiguration.provider}
+                  label="AI Provider"
+                  onChange={(e) => setSettings({
+                    ...settings,
+                    aiConfiguration: {
+                      ...settings.aiConfiguration,
+                      provider: e.target.value as 'openai' | 'azure' | 'none'
+                    }
+                  })}
+                >
+                  <MenuItem value="none">None</MenuItem>
+                  <MenuItem value="openai">OpenAI</MenuItem>
+                  <MenuItem value="azure">Azure AI Foundry</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+
+          {settings.aiConfiguration.provider === 'openai' && (
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold' }}>
+                OpenAI Configuration
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 8 }}>
+                  <TextField
+                    fullWidth
+                    label="API Key"
+                    type="password"
+                    value={settings.aiConfiguration.openAI.apiKey}
+                    onChange={(e) => setSettings({
+                      ...settings,
+                      aiConfiguration: {
+                        ...settings.aiConfiguration,
+                        openAI: {
+                          ...settings.aiConfiguration.openAI,
+                          apiKey: e.target.value
+                        }
+                      }
+                    })}
+                    placeholder="sk-proj-xxxxxxxxxxxxx"
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField
+                    fullWidth
+                    label="Model"
+                    value={settings.aiConfiguration.openAI.model}
+                    onChange={(e) => setSettings({
+                      ...settings,
+                      aiConfiguration: {
+                        ...settings.aiConfiguration,
+                        openAI: {
+                          ...settings.aiConfiguration.openAI,
+                          model: e.target.value
+                        }
+                      }
+                    })}
+                    placeholder="gpt-4"
+                  />
+                </Grid>
+              </Grid>
+            </Box>
+          )}
+
+          {settings.aiConfiguration.provider === 'azure' && (
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold' }}>
+                Azure AI Foundry Configuration
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    fullWidth
+                    label="Endpoint"
+                    value={settings.aiConfiguration.azureAI.endpoint}
+                    onChange={(e) => setSettings({
+                      ...settings,
+                      aiConfiguration: {
+                        ...settings.aiConfiguration,
+                        azureAI: {
+                          ...settings.aiConfiguration.azureAI,
+                          endpoint: e.target.value
+                        }
+                      }
+                    })}
+                    placeholder="https://your-resource.openai.azure.com/"
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    fullWidth
+                    label="API Key"
+                    type="password"
+                    value={settings.aiConfiguration.azureAI.apiKey}
+                    onChange={(e) => setSettings({
+                      ...settings,
+                      aiConfiguration: {
+                        ...settings.aiConfiguration,
+                        azureAI: {
+                          ...settings.aiConfiguration.azureAI,
+                          apiKey: e.target.value
+                        }
+                      }
+                    })}
+                    placeholder="your-api-key"
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    fullWidth
+                    label="Deployment Name"
+                    value={settings.aiConfiguration.azureAI.deployment}
+                    onChange={(e) => setSettings({
+                      ...settings,
+                      aiConfiguration: {
+                        ...settings.aiConfiguration,
+                        azureAI: {
+                          ...settings.aiConfiguration.azureAI,
+                          deployment: e.target.value
+                        }
+                      }
+                    })}
+                    placeholder="gpt-4-deployment"
+                  />
+                </Grid>
+              </Grid>
+            </Box>
+          )}
         </Paper>
 
         {/* Error Display */}
@@ -390,7 +625,7 @@ function App() {
             </Paper>
           </>
         )}
-      </Container>
+      </Box>
 
       <Box component="footer" sx={{ py: 3, px: 2, mt: 'auto', backgroundColor: '#f5f5f5', textAlign: 'center' }}>
         <Typography variant="body2" color="text.secondary">
