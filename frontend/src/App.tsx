@@ -241,7 +241,7 @@ function App() {
     }
   };
 
-  const getSeverityColor = (severity: string) => {
+  const getSeverityColor = (severity: string): 'error' | 'warning' | 'info' | 'success' | 'default' => {
     switch (severity.toLowerCase()) {
       case 'critical':
         return 'error';
@@ -256,7 +256,7 @@ function App() {
     }
   };
 
-  const getScoreColor = (score: string) => {
+  const getScoreColor = (score: string): 'success' | 'warning' | 'error' | 'info' => {
     switch (score.toLowerCase()) {
       case 'high':
         return 'success';
@@ -279,7 +279,7 @@ function App() {
             </Typography>
             <Chip 
               label={`Score: ${pillar.score}`} 
-              color={getScoreColor(pillar.score) as 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'}
+              color={getScoreColor(pillar.score)}
               sx={{ mr: 2 }}
             />
           </Box>
@@ -761,7 +761,7 @@ function App() {
                         <TableCell>
                           <Chip
                             label={finding.severity}
-                            color={getSeverityColor(finding.severity) as 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'}
+                            color={getSeverityColor(finding.severity)}
                             size="small"
                           />
                         </TableCell>

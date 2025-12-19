@@ -11,6 +11,14 @@ public interface IAnalysisService
 
 public class AnalysisService : IAnalysisService
 {
+    // Compliance thresholds for scoring
+    private const double COST_TAG_COMPLIANCE_THRESHOLD = 0.7;
+    private const double OPERATIONAL_TAG_COMPLIANCE_THRESHOLD = 0.8;
+    
+    // Score calculation thresholds
+    private const int SCORE_HIGH_STRENGTH_THRESHOLD = 2;
+    private const int SCORE_LOW_WEAKNESS_MULTIPLIER = 2;
+    
     public async Task<AnalysisResult> AnalyzeResourcesAsync(List<AzureResource> resources, AnalysisSettings settings)
     {
         var result = new AnalysisResult
@@ -35,7 +43,7 @@ public class AnalysisService : IAnalysisService
         if (settings.AiEnabled)
         {
             result.ExecutiveSummary = await GenerateAISummaryAsync(resources, settings);
-            result.ExecutiveSummaryPillars = await GeneratePillarBasedSummaryAsync(resources, result, settings);
+            result.ExecutiveSummaryPillars = GeneratePillarBasedSummary(resources, result);
             result.Findings.AddRange(await GenerateAIFindingsAsync(resources, settings));
         }
         
@@ -177,13 +185,10 @@ public class AnalysisService : IAnalysisService
     }
     
     
-    private async Task<ExecutiveSummaryPillars> GeneratePillarBasedSummaryAsync(
+    private ExecutiveSummaryPillars GeneratePillarBasedSummary(
         List<AzureResource> resources, 
-        AnalysisResult analysisResult, 
-        AnalysisSettings settings)
+        AnalysisResult analysisResult)
     {
-        await Task.CompletedTask; // Placeholder for async operations
-        
         var pillars = new ExecutiveSummaryPillars();
         
         // Security Pillar Analysis
@@ -283,7 +288,7 @@ public class AnalysisService : IAnalysisService
             r.Tags.ContainsKey("Department") || 
             r.Tags.ContainsKey("Project"));
         
-        if (resourcesWithCostTags > resources.Count * 0.7)
+        if (resourcesWithCostTags > resources.Count * COST_TAG_COMPLIANCE_THRESHOLD)
         {
             strengths.Add($"Good cost allocation tagging: {resourcesWithCostTags} out of {resources.Count} resources have cost-related tags, enabling proper chargeback and showback.");
         }
@@ -346,7 +351,7 @@ public class AnalysisService : IAnalysisService
             r.Tags.ContainsKey("Owner") || 
             r.Tags.ContainsKey("Application"));
         
-        if (resourcesWithOpTags > resources.Count * 0.8)
+        if (resourcesWithOpTags > resources.Count * OPERATIONAL_TAG_COMPLIANCE_THRESHOLD)
         {
             strengths.Add($"Strong operational tagging: {resourcesWithOpTags} out of {resources.Count} resources have operational tags (Environment, Owner, Application), facilitating resource management and automation.");
         }
@@ -517,11 +522,11 @@ public class AnalysisService : IAnalysisService
     
     private string CalculateScore(int strengthCount, int weaknessCount)
     {
-        if (strengthCount >= weaknessCount && strengthCount > 2)
+        if (strengthCount >= weaknessCount && strengthCount > SCORE_HIGH_STRENGTH_THRESHOLD)
         {
             return "High";
         }
-        else if (weaknessCount > strengthCount * 2)
+        else if (weaknessCount > strengthCount * SCORE_LOW_WEAKNESS_MULTIPLIER)
         {
             return "Low";
         }
