@@ -27,7 +27,14 @@ public class AnalysisController : ControllerBase
     {
         try
         {
-            _logger.LogInformation("Starting analysis for subscription: {SubscriptionId}", request.SubscriptionId);
+            if (request.SubscriptionId.Equals(AzureFetcherService.AllSubscriptionsIdentifier, StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogInformation("Starting analysis for all subscriptions");
+            }
+            else
+            {
+                _logger.LogInformation("Starting analysis for subscription: {SubscriptionId}", request.SubscriptionId);
+            }
             
             // Fetch Azure resources
             var resources = await _azureFetcher.FetchAllResourcesAsync(request.SubscriptionId);
